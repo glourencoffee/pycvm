@@ -133,8 +133,8 @@ _report_groups_by_name = {
     'DF Individual - Demonstração do Fluxo de Caixa (Método Indireto)':  (ReportGroup.DFC_MI, False),
     'DF Consolidado - Demonstração das Mutações do Patrimônio Líquido':  (ReportGroup.DMPL, True),
     'DF Individual - Demonstração das Mutações do Patrimônio Líquido':   (ReportGroup.DMPL, False),
-    'DF Consolidado - Demonstração de Valor Adicionado':                 (ReportGroup.DMPL, True),
-    'DF Individual - Demonstração de Valor Adicionado':                  (ReportGroup.DMPL, False)
+    'DF Consolidado - Demonstração de Valor Adicionado':                 (ReportGroup.DVA, True),
+    'DF Individual - Demonstração de Valor Adicionado':                  (ReportGroup.DVA, False)
 }
 
 def _read_report_date(date_string: str) -> datetime.date:
