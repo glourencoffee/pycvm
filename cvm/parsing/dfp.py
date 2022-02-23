@@ -2,7 +2,8 @@ import enum
 import collections
 import datetime
 import csv
-from typing                import Optional, Generator, Tuple, Dict
+import logging
+from typing                import Optional, Generator, Tuple, Dict, List, Iterable
 from cvm.parsing.normalize import normalize_currency, normalize_quantity
 
 class Company:
@@ -65,7 +66,17 @@ class Report:
 
 class BalanceType(enum.Enum):
     # BPA balances
-    # TODO
+    CURRENT_ASSETS                 = enum.auto() # Ativo Circulante
+    CASH_AND_CASH_EQUIVALENTS      = enum.auto() # Caixa e Equivalentes de Caixa (CCE)
+    LIQUID_ASSETS                  = enum.auto() # Disponibilidades
+    FINANCIAL_INVESTMENTS          = enum.auto() # Aplicações Financeiras
+    ACCOUNTS_RECEIVABLE            = enum.auto() # Contas a Receber
+    INVENTORIES                    = enum.auto() # Estoque
+    NONCURRENT_ASSETS              = enum.auto() # Ativo Não Circulante
+    LONG_TERM_ASSETS               = enum.auto() # Ativo Realizável a Longo Prazo
+    LONG_TERM_INVESTIMENTS         = enum.auto() # Investimentos a Longo Prazo
+    FIXED_ASSETS                   = enum.auto() # Ativo Imobilizado
+    INTANGIBLE_ASSETS              = enum.auto() # Ativo Intangível
 
     # BPP balances
     # TODO
@@ -146,70 +157,124 @@ def _read_report_group(group: str) -> Tuple[ReportGroup, bool]:
     except KeyError:
         raise ValueError(f"unknown DFP group '{ group }'") from None
 
-def reader(csv_file, delimiter: str = ';') -> Generator[Report, None, None]:
-    """Returns a generator that reads a DFP report from a CSV file."""
+class _RawReport:
+    __slots__ = [
+        'reference_date',
+        'version',
+        'group',
+        'cnpj',
+        'corporate_name',
+        'cvm_code',
+        'currency_name',
+        'currency_size',
+        'fiscal_year_start',
+        'fiscal_year_end',
+        'fiscal_year_order',
+        'accounts'
+    ]
+
+    reference_date: str
+    version: str
+    group: str
+    cnpj: str
+    corporate_name: str
+    cvm_code: str
+    currency_name: str
+    currency_size: str
+    fiscal_year_start: str
+    fiscal_year_end: str
+    fiscal_year_order: str
+    accounts: List[Tuple[str, str, str, str]]
+
+def _read_raw_reports(csv_file, delimiter: str) -> Iterable[_RawReport]:
+    """Reads and returns DFP reports as an iterable of `_RawReport`s."""
 
     csv_reader = csv.DictReader(csv_file, delimiter=delimiter)
 
     reports = {}
+    prev_row = ''
 
-    for row_number, row in enumerate(csv_reader):
+    for row_index, row in enumerate(csv_reader):
+        # Clean up duplicate rows. I don't know why, but some rows are duplicated.
+        if row == prev_row:
+            continue
+
+        prev_row = row
+
         try:
-            cvm_code          = row['CD_CVM']
-            fiscal_year_end   = _read_report_date(row['DT_FIM_EXERC'])
+            cvm_code        = row['CD_CVM']
+            fiscal_year_end = row['DT_FIM_EXERC']
+        except KeyError as e:
+            logging.warn('failed to read row %d: %s', row_index, e)
+            continue
+
+        report_key = cvm_code + fiscal_year_end
+
+        try:
+            report = reports[report_key]
+        except KeyError:
+            report = _RawReport()
 
             try:
-                # Look up for a cached report on this fiscal year.
-                report = reports[fiscal_year_end.year]
+                report.reference_date    = row['DT_REFER']
+                report.version           = row['VERSAO']
+                report.group             = row['GRUPO_DFP']
+                report.cnpj              = row['CNPJ_CIA']
+                report.corporate_name    = row['DENOM_CIA']
+                report.currency_name     = row['MOEDA']
+                report.currency_size     = row['ESCALA_MOEDA']
+                report.fiscal_year_start = row['DT_INI_EXERC'] if 'DT_INI_EXERC' in row else ''
+                report.fiscal_year_order = row['ORDEM_EXERC']
+            except KeyError as e:
+                logging.warn('failed to read row %d: %s', row_index, e)
+                continue
 
-                # A report was found. Now check if this row's CVM code matches the cached report's.
-                if cvm_code != report.company.cvm_code:
-                    # Mismatching CVM code. That means we're getting rows of a new company,
-                    # so generate (yield) all cached reports.
-                    for r in reports.values():
-                        yield r
+            report.cvm_code        = cvm_code
+            report.fiscal_year_end = fiscal_year_end
+            report.accounts        = []
 
-                    # Reset cache and fallthrough, so as to cache up this row's remaining data.
-                    reports = {}
-                    report = None
-                else:
-                    # This row's CVM code is same as the one before. That means we're still reading
-                    # data of the same company, so fallthrough and read this row's account data.
-                    pass
+            reports[report_key] = report
+                
+        report.accounts.append((row['CD_CONTA'], row['DS_CONTA'], row['VL_CONTA'], row['ST_CONTA_FIXA']))
 
-            except KeyError:
-                # No report found. This happens while reading the first rows.
-                report = None
+    return reports.values()
 
-            if report is None:
+def reader(csv_file, delimiter: str = ';') -> Generator[Report, None, None]:
+    """Returns a generator that reads a DFP report from a CSV file."""
 
+    for raw_report in _read_raw_reports(csv_file, delimiter):
+        try:
+            r = Report()
+            r.version                = int(raw_report.version)
+            r.group, r.consolidated  = _read_report_group(raw_report.group)
+            r.company                = Company()
+            r.company.cnpj           = raw_report.cnpj
+            r.company.corporate_name = raw_report.corporate_name
+            r.company.cvm_code       = raw_report.cvm_code
+            r.currency               = normalize_currency(raw_report.currency_name)
+            r.reference_date         = _read_report_date(raw_report.reference_date)
+            r.fiscal_year_start      = _read_report_date(raw_report.fiscal_year_start) if raw_report.fiscal_year_start != '' else None
+            r.fiscal_year_end        = _read_report_date(raw_report.fiscal_year_end)
+            r.fiscal_year_order      = FiscalYearOrder(raw_report.fiscal_year_order)
+            r.accounts               = []
 
-                report = Report()
-                report.version                    = int(row['VERSAO'])
-                report.group, report.consolidated = _read_report_group(row['GRUPO_DFP'])
-                report.company                    = Company()
-                report.company.cnpj               = row['CNPJ_CIA']
-                report.company.cvm_code           = cvm_code
-                report.company.corporate_name        = row['DENOM_CIA']
-                report.currency                   = normalize_currency(row['MOEDA'])
-                report.accounts                   = []
-                report.reference_date             = _read_report_date(row['DT_REFER'])
-                report.fiscal_year_start          = _read_report_date(row['DT_INI_EXERC']) if 'DT_INI_EXERC' in row else None
-                report.fiscal_year_end            = fiscal_year_end
-                report.fiscal_year_order          = FiscalYearOrder(row['ORDEM_EXERC'])
+            for code, name, quantity, is_fixed in raw_report.accounts:
+                acc = Account()
+                acc.code     = code
+                acc.name     = name
+                acc.quantity = normalize_quantity(float(quantity), raw_report.currency_size)
+                acc.is_fixed = is_fixed == 'S'
 
-                reports[fiscal_year_end.year] = report
+                r.accounts.append(acc)
+        except ValueError as exc:
+            logging.warn(
+                'failed to parse report of company %s (CVM: %s, fiscal year end: %s): %s',
+                raw_report.corporate_name,
+                raw_report.cvm_code,
+                raw_report.fiscal_year_end,
+                exc
+            )
 
-            account = Account()
-            account.code     = row['CD_CONTA']
-            account.name     = row['DS_CONTA']
-            account.quantity = normalize_quantity(float(row['VL_CONTA']), row['ESCALA_MOEDA'])
-            account.is_fixed = row['ST_CONTA_FIXA'] == 'S'
-            report.accounts.append(account)
-        except ValueError as e:
-            raise ValueError(f'at row { row_number }: { e }') from None
-    
-    for r in reports.values():
         yield r
 
 def balances(report: Report) -> Dict[BalanceType, float]:
