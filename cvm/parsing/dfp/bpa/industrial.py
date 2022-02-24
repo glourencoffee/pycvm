@@ -51,8 +51,23 @@ class IndustrialCompanyBalance(Balance):
             self.other_current_assets
         )
 
-        if current_assets != self._current_assets:
-            raise
+        if current_assets != self.current_assets:
+            raise ValueError(f"sum of discriminated current assets ({ current_assets }) != 'current_assets' ({ self.current_assets })")
+
+        noncurrent_assets = (
+            self.long_term_assets +
+            self.long_term_investiments +
+            self.fixed_assets +
+            self.intangible_assets
+        )
+
+        if noncurrent_assets != self.noncurrent_assets:
+            raise ValueError(f"sum of discriminated noncurrent assets ({ noncurrent_assets }) != 'noncurrent_assets' ({ self.noncurrent_assets })")
+
+        total_assets = current_assets + noncurrent_assets
+
+        if total_assets != self.total_assets:
+            raise ValueError(f"'current_assets' + 'noncurrent_assets' ({ total_assets }) != 'total_assets' ({ self.total_assets })")
 
     @property
     def total_assets(self) -> float:
