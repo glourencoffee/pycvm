@@ -1,27 +1,27 @@
 import zlib
-from typing import List, Tuple, Optional, Iterable
+from typing import List, Tuple, Iterable
 
 AccountList = List[Tuple[str, str, float]]
 
 class Balance:
-    _layout: List[Tuple[str, str, Optional[str]]] = []
+    _layout: List[Tuple[str, str, str]] = []
     
     __slots__ = []
 
     def __init__(self, accounts: AccountList):
-        for i, (code, name, quantity) in enumerate(accounts):
+        for i, (expected_code, expected_name, attr) in enumerate(self._layout):
+            if attr not in self.__slots__:
+                raise AttributeError(f"invalid attribute '{ attr }'")
+
             try:
-                expected_code, expected_name, attr = self._layout[i]
-            except IndexError:
-                raise ValueError(f"invalid account data: index { i } out of layout's bounds)") from None
+                code, name, quantity = next(accounts)
+            except (IndexError, StopIteration):
+                raise ValueError(f"missing account data at index { i }: too few accounts given)") from None
 
             if code != expected_code:
                 raise ValueError(f"invalid account code '{ code }' at index { i } (expected: '{ expected_code }')")
             elif name != expected_name:
                 raise ValueError(f"invalid account name '{ name }' at index { i } (expected: '{ expected_name }')")
-            
-            if attr not in self.__slots__:
-                raise ValueError(f'invalid attribute { attr }')
 
             setattr(self, attr, float(quantity))
 
