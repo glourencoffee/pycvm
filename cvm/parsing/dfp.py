@@ -14,16 +14,30 @@ class Company:
     def __str__(self) -> str:
         return f'Company({ self.corporate_name } / CNPJ: { self.cnpj } / CVM: { self.cvm_code })'
 
-class ReportGroup(enum.Flag):
-    BPA    = 1 # Balanço Patrimonial Ativo
-    BPP    = 2 # Balanço Patrimonial Passivo
-    DRE    = 3 # Demonstração de Resultado
-    DRA    = 4 # Demonstração de Resultado Abrangente
-    DMPL   = 5 # Demonstração das Mutações do Patrimônio Líquido
-    # FIXME: disambiguate between MD and MI
-    DFC_MD = 6 # Demonstração de Fluxo de Caixa (Método Direto)
-    DFC_MI = 6 # Demonstração de Fluxo de Caixa (Método Indireto)
-    DVA    = 7 # Demonstração de Valor Adicionado
+class ReportGroup(enum.IntEnum):
+    BPA = 1
+    """Balanço Patrimonial Ativo"""
+    
+    BPP = 2
+    """Balanço Patrimonial Passivo"""
+
+    DRE = 3
+    """Demonstração de Resultado"""
+
+    DRA = 4
+    """Demonstração de Resultado Abrangente"""
+
+    DMPL = 5
+    """Demonstração das Mutações do Patrimônio Líquido"""
+
+    DFC_MD = 61
+    """Demonstração de Fluxo de Caixa (Método Direto)"""
+
+    DFC_MI = 62
+    """Demonstração de Fluxo de Caixa (Método Indireto)"""
+
+    DVA = 7
+    """Demonstração de Valor Adicionado"""
 
 class Account:
     code: str
@@ -34,16 +48,6 @@ class Account:
     @property
     def level(self) -> int:
         return self.code.count('.') + 1
-
-    def group(self) -> ReportGroup:
-        sep_index = self.code.find('.')
-
-        if sep_index == -1:
-            root_level = int(self.code)
-        else:
-            root_level = int(self.code[:sep_index])
-
-        return ReportGroup(root_level)
 
     def __str__(self) -> str:
         return f'Account({ self.code }, { self.name }, { self.quantity }, fixed: { self.is_fixed })'
@@ -203,12 +207,13 @@ def _read_raw_reports(csv_file, delimiter: str) -> Iterable[_RawReport]:
 
         try:
             cvm_code        = row['CD_CVM']
+            reference_date  = row['DT_REFER']
             fiscal_year_end = row['DT_FIM_EXERC']
         except KeyError as e:
             logging.warn('failed to read row %d: %s', row_index, e)
             continue
 
-        report_key = cvm_code + fiscal_year_end
+        report_key = cvm_code + reference_date + fiscal_year_end
 
         try:
             report = reports[report_key]
@@ -216,7 +221,6 @@ def _read_raw_reports(csv_file, delimiter: str) -> Iterable[_RawReport]:
             report = _RawReport()
 
             try:
-                report.reference_date    = row['DT_REFER']
                 report.version           = row['VERSAO']
                 report.group             = row['GRUPO_DFP']
                 report.cnpj              = row['CNPJ_CIA']
@@ -230,6 +234,7 @@ def _read_raw_reports(csv_file, delimiter: str) -> Iterable[_RawReport]:
                 continue
 
             report.cvm_code        = cvm_code
+            report.reference_date  = reference_date
             report.fiscal_year_end = fiscal_year_end
             report.accounts        = []
 
