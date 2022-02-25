@@ -73,7 +73,7 @@ class IndustrialCompanyBalance(Balance):
         if has_deprecia and has_amortiza:
             self._depreciation_and_amortization = account.quantity
             self._da_found_count = 2
-        else:
+        elif has_deprecia or has_amortiza:
             self._da_found_count += 1
 
             if self._da_found_count == 1:
