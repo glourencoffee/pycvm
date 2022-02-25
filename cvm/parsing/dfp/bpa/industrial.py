@@ -1,4 +1,4 @@
-from cvm.parsing.dfp.balance import Balance, hash_id
+from cvm.parsing.dfp.balance import Balance
 
 class IndustrialCompanyBalance(Balance):
     _layout = [
@@ -36,8 +36,6 @@ class IndustrialCompanyBalance(Balance):
         '_fixed_assets',
         '_intangible_assets'
     ]
-
-    hash_id = hash_id((t[0], t[1]) for t in _layout)
 
     def validate(self):
         current_assets = (
@@ -158,6 +156,3 @@ class IndustrialCompanyBalance(Balance):
         """Ativo Intangível"""
 
         return self._intangible_assets
-
-    def __str__(self) -> str:
-        return f'IndustrialCompanyBalance({ self.total_assets })'

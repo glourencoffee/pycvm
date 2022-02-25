@@ -5,8 +5,9 @@ import csv
 import logging
 from typing                  import Optional, Generator, Tuple, Dict, List, Iterable
 from cvm.parsing.normalize   import normalize_currency, normalize_quantity
-from cvm.parsing.dfp.balance import Balance, hash_id
-from cvm.parsing.dfp         import bpa
+from cvm.parsing.dfp.account import Account
+from cvm.parsing.dfp.balance import Balance
+from cvm.parsing.dfp         import bpa, dre
 
 class Company:
     cnpj: str
@@ -41,19 +42,6 @@ class ReportGroup(enum.IntEnum):
     DVA = 7
     """Demonstração de Valor Adicionado"""
 
-class Account:
-    code: str
-    name: str
-    quantity: float
-    is_fixed: bool
-
-    @property
-    def level(self) -> int:
-        return self.code.count('.') + 1
-
-    def __str__(self) -> str:
-        return f'Account({ self.code }, { self.name }, { self.quantity }, fixed: { self.is_fixed })'
-
 class FiscalYearOrder(enum.Enum):
     LAST           = 'ÚLTIMO'
     SECOND_TO_LAST = 'PENÚLTIMO'
@@ -72,25 +60,21 @@ class Report:
 
     def balance(self) -> Balance:
         if self.group == ReportGroup.BPA:
-            return self._bpa_balance()
+            return self._parse_balance(cls_list=(bpa.FinancialCompanyBalance, bpa.IndustrialCompanyBalance, bpa.InsuranceCompanyBalance))
+        elif self.group == ReportGroup.DRE:
+            return self._parse_balance(cls_list=(dre.IndustrialCompanyBalance,))
 
-    def _bpa_balance(self) -> Balance:
-        fixed_accounts = []
-        report_hash_id = ''
+    def _parse_balance(self, cls_list) -> Balance:
+        accounts_iter = iter(self.accounts)
 
-        for acc in self.accounts:
-            if acc.is_fixed and acc.level <= 3:
-                fixed_accounts.append(acc)
+        for cls in cls_list:
+            try:
+                return cls(accounts_iter)
+            except ValueError:
+                pass
 
-        report_hash_id = hash_id((acc.code, acc.name) for acc in fixed_accounts)
-
-        for cls in (bpa.FinancialCompanyBalance, bpa.IndustrialCompanyBalance, bpa.InsuranceCompanyBalance):
-            logging.debug('comparing hashes: %s (%d) == report (%d)', cls.__name__, cls.hash_id, report_hash_id)
-
-            if cls.hash_id == report_hash_id:
-                return cls((acc.code, acc.name, acc.quantity) for acc in fixed_accounts)
-
-        raise ValueError('invalid/unknown BPA balance')
+        # TODO: specialize exception?
+        raise ValueError('invalid/unknown balance layout')
 
 class _RawReport:
     __slots__ = [
