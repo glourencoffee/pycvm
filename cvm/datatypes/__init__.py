@@ -4,3 +4,4 @@ import cvm.datatypes.country
 import cvm.datatypes.industry
 import cvm.datatypes.issuer_status
 import cvm.datatypes.controlling_interest
+import cvm.datatypes.statement

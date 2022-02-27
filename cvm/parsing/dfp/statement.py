@@ -4,6 +4,7 @@ import datetime
 import csv
 import logging
 from typing                  import Optional, Generator, Tuple, Dict, List, Iterable
+from cvm.datatypes.statement import StatementType
 from cvm.parsing.util        import normalize_currency, normalize_quantity, date_from_string
 from cvm.parsing.dfp.account import Account
 from cvm.parsing.dfp.balance import Balance
@@ -17,38 +18,13 @@ class Company:
     def __str__(self) -> str:
         return f'Company({ self.corporate_name } / CNPJ: { self.cnpj } / CVM: { self.cvm_code })'
 
-class StatementGroup(enum.IntEnum):
-    BPA = 1
-    """Balanço Patrimonial Ativo"""
-    
-    BPP = 2
-    """Balanço Patrimonial Passivo"""
-
-    DRE = 3
-    """Demonstração de Resultado"""
-
-    DRA = 4
-    """Demonstração de Resultado Abrangente"""
-
-    DMPL = 5
-    """Demonstração das Mutações do Patrimônio Líquido"""
-
-    DFC_MD = 61
-    """Demonstração de Fluxo de Caixa (Método Direto)"""
-
-    DFC_MI = 62
-    """Demonstração de Fluxo de Caixa (Método Indireto)"""
-
-    DVA = 7
-    """Demonstração de Valor Adicionado"""
-
 class FiscalYearOrder(enum.Enum):
     LAST           = 'ÚLTIMO'
     SECOND_TO_LAST = 'PENÚLTIMO'
 
 class Statement:
     version: int
-    group: StatementGroup
+    type: StatementType
     consolidated: bool
     company: Company
     currency: str
@@ -59,9 +35,9 @@ class Statement:
     fiscal_year_order: FiscalYearOrder
 
     def balance(self) -> Balance:
-        if self.group == StatementGroup.BPA:
+        if self.type == StatementType.BPA:
             return self._parse_balance(cls_list=(bpa.FinancialCompanyBalance, bpa.IndustrialCompanyBalance, bpa.InsuranceCompanyBalance))
-        elif self.group == StatementGroup.DRE:
+        elif self.type == StatementType.DRE:
             return self._parse_balance(cls_list=(dre.IndustrialCompanyBalance,))
 
     def _parse_balance(self, cls_list) -> Balance:
@@ -106,25 +82,25 @@ class _RawStatement:
     accounts: List[Tuple[str, str, str, str]]
 
 _stmt_groups_by_name = {
-    'DF Consolidado - Balanço Patrimonial Ativo':                        (StatementGroup.BPA,    True),
-    'DF Individual - Balanço Patrimonial Ativo':                         (StatementGroup.BPA,    False),
-    'DF Consolidado - Balanço Patrimonial Passivo':                      (StatementGroup.BPP,    True),
-    'DF Individual - Balanço Patrimonial Passivo':                       (StatementGroup.BPP,    False),
-    'DF Consolidado - Demonstração do Resultado':                        (StatementGroup.DRE,    True),
-    'DF Individual - Demonstração do Resultado':                         (StatementGroup.DRE,    False),
-    'DF Consolidado - Demonstração de Resultado Abrangente':             (StatementGroup.DRA,    True),
-    'DF Individual - Demonstração de Resultado Abrangente':              (StatementGroup.DRA,    False),
-    'DF Consolidado - Demonstração do Fluxo de Caixa (Método Direto)':   (StatementGroup.DFC_MD, True),
-    'DF Individual - Demonstração do Fluxo de Caixa (Método Direto)':    (StatementGroup.DFC_MD, False),
-    'DF Consolidado - Demonstração do Fluxo de Caixa (Método Indireto)': (StatementGroup.DFC_MI, True),
-    'DF Individual - Demonstração do Fluxo de Caixa (Método Indireto)':  (StatementGroup.DFC_MI, False),
-    'DF Consolidado - Demonstração das Mutações do Patrimônio Líquido':  (StatementGroup.DMPL,   True),
-    'DF Individual - Demonstração das Mutações do Patrimônio Líquido':   (StatementGroup.DMPL,   False),
-    'DF Consolidado - Demonstração de Valor Adicionado':                 (StatementGroup.DVA,    True),
-    'DF Individual - Demonstração de Valor Adicionado':                  (StatementGroup.DVA,    False)
+    'DF Consolidado - Balanço Patrimonial Ativo':                        (StatementType.BPA,    True),
+    'DF Individual - Balanço Patrimonial Ativo':                         (StatementType.BPA,    False),
+    'DF Consolidado - Balanço Patrimonial Passivo':                      (StatementType.BPP,    True),
+    'DF Individual - Balanço Patrimonial Passivo':                       (StatementType.BPP,    False),
+    'DF Consolidado - Demonstração do Resultado':                        (StatementType.DRE,    True),
+    'DF Individual - Demonstração do Resultado':                         (StatementType.DRE,    False),
+    'DF Consolidado - Demonstração de Resultado Abrangente':             (StatementType.DRA,    True),
+    'DF Individual - Demonstração de Resultado Abrangente':              (StatementType.DRA,    False),
+    'DF Consolidado - Demonstração do Fluxo de Caixa (Método Direto)':   (StatementType.DFC_MD, True),
+    'DF Individual - Demonstração do Fluxo de Caixa (Método Direto)':    (StatementType.DFC_MD, False),
+    'DF Consolidado - Demonstração do Fluxo de Caixa (Método Indireto)': (StatementType.DFC_MI, True),
+    'DF Individual - Demonstração do Fluxo de Caixa (Método Indireto)':  (StatementType.DFC_MI, False),
+    'DF Consolidado - Demonstração das Mutações do Patrimônio Líquido':  (StatementType.DMPL,   True),
+    'DF Individual - Demonstração das Mutações do Patrimônio Líquido':   (StatementType.DMPL,   False),
+    'DF Consolidado - Demonstração de Valor Adicionado':                 (StatementType.DVA,    True),
+    'DF Individual - Demonstração de Valor Adicionado':                  (StatementType.DVA,    False)
 }
 
-def _read_statement_group(group: str) -> Tuple[StatementGroup, bool]:
+def _read_statement_group(group: str) -> Tuple[StatementType, bool]:
     try:
         return _stmt_groups_by_name[group]
     except KeyError:
@@ -191,7 +167,7 @@ def reader(csv_file, delimiter: str = ';') -> Generator[Statement, None, None]:
         try:
             r = Statement()
             r.version                = int(raw_stmt.version)
-            r.group, r.consolidated  = _read_statement_group(raw_stmt.group)
+            r.type, r.consolidated   = _read_statement_group(raw_stmt.group)
             r.company                = Company()
             r.company.cnpj           = raw_stmt.cnpj
             r.company.corporate_name = raw_stmt.corporate_name
