@@ -3,20 +3,21 @@ import collections
 import datetime
 import csv
 import logging
-from typing                  import Optional, Generator, Tuple, Dict, List, Iterable
+from typing                  import Optional, Generator, Tuple, Dict, List, Iterable, TextIO
 from cvm.datatypes.statement import StatementType
+from cvm.datatypes.cnpj      import CNPJ
 from cvm.parsing.util        import normalize_currency, normalize_quantity, date_from_string
 from cvm.parsing.dfp.account import Account
 from cvm.parsing.dfp.balance import Balance
 from cvm.parsing.dfp         import bpa, dre
 
 class Company:
-    cnpj: str
+    cnpj: CNPJ
     corporate_name: str
     cvm_code: str
 
-    def __str__(self) -> str:
-        return f'Company({ self.corporate_name } / CNPJ: { self.cnpj } / CVM: { self.cvm_code })'
+    def __repr__(self) -> str:
+        return f'<Company: { self.corporate_name } (CNPJ: { self.cnpj } / CVM: { self.cvm_code })>'
 
 class FiscalYearOrder(enum.Enum):
     LAST           = 'ÚLTIMO'
@@ -139,7 +140,7 @@ def _read_raw_statements(csv_file, delimiter: str) -> Iterable[_RawStatement]:
             try:
                 stmt.version           = row['VERSAO']
                 stmt.group             = row['GRUPO_DFP']
-                stmt.cnpj              = row['CNPJ_CIA']
+                stmt.cnpj              = CNPJ(row['CNPJ_CIA'])
                 stmt.corporate_name    = row['DENOM_CIA']
                 stmt.currency_name     = row['MOEDA']
                 stmt.currency_size     = row['ESCALA_MOEDA']
@@ -160,33 +161,39 @@ def _read_raw_statements(csv_file, delimiter: str) -> Iterable[_RawStatement]:
 
     return stmts.values()
 
-def reader(csv_file, delimiter: str = ';') -> Generator[Statement, None, None]:
+def _read_statement(raw_stmt: _RawStatement) -> Statement:
+    stmt = Statement()
+    stmt.version                 = int(raw_stmt.version)
+    stmt.type, stmt.consolidated = _read_statement_group(raw_stmt.group)
+    stmt.company                 = Company()
+    stmt.company.cnpj            = raw_stmt.cnpj
+    stmt.company.corporate_name  = raw_stmt.corporate_name
+    stmt.company.cvm_code        = raw_stmt.cvm_code
+    stmt.currency                = normalize_currency(raw_stmt.currency_name)
+    stmt.reference_date          = date_from_string(raw_stmt.reference_date)
+    stmt.fiscal_year_start       = date_from_string(raw_stmt.fiscal_year_start) if raw_stmt.fiscal_year_start != '' else None
+    stmt.fiscal_year_end         = date_from_string(raw_stmt.fiscal_year_end)
+    stmt.fiscal_year_order       = FiscalYearOrder(raw_stmt.fiscal_year_order)
+    stmt.accounts                = []
+
+    for code, name, quantity, is_fixed in raw_stmt.accounts:
+        acc = Account()
+        acc.code     = code
+        acc.name     = name
+        acc.quantity = normalize_quantity(float(quantity), raw_stmt.currency_size)
+        acc.is_fixed = is_fixed == 'S'
+
+        stmt.accounts.append(acc)
+
+    return stmt
+
+def reader(csv_file: TextIO, delimiter: str = ';') -> Generator[Statement, None, None]:
     """Returns a generator that reads a DFP stmt from a CSV file."""
 
     for raw_stmt in _read_raw_statements(csv_file, delimiter):
         try:
-            r = Statement()
-            r.version                = int(raw_stmt.version)
-            r.type, r.consolidated   = _read_statement_group(raw_stmt.group)
-            r.company                = Company()
-            r.company.cnpj           = raw_stmt.cnpj
-            r.company.corporate_name = raw_stmt.corporate_name
-            r.company.cvm_code       = raw_stmt.cvm_code
-            r.currency               = normalize_currency(raw_stmt.currency_name)
-            r.reference_date         = date_from_string(raw_stmt.reference_date)
-            r.fiscal_year_start      = date_from_string(raw_stmt.fiscal_year_start) if raw_stmt.fiscal_year_start != '' else None
-            r.fiscal_year_end        = date_from_string(raw_stmt.fiscal_year_end)
-            r.fiscal_year_order      = FiscalYearOrder(raw_stmt.fiscal_year_order)
-            r.accounts               = []
-
-            for code, name, quantity, is_fixed in raw_stmt.accounts:
-                acc = Account()
-                acc.code     = code
-                acc.name     = name
-                acc.quantity = normalize_quantity(float(quantity), raw_stmt.currency_size)
-                acc.is_fixed = is_fixed == 'S'
-
-                r.accounts.append(acc)
+            stmt = _read_statement(raw_stmt)
+            yield stmt
         except ValueError as exc:
             logging.warn(
                 'failed to parse stmt of company %s (CVM: %s, fiscal year end: %s): %s',
@@ -195,5 +202,3 @@ def reader(csv_file, delimiter: str = ';') -> Generator[Statement, None, None]:
                 raw_stmt.fiscal_year_end,
                 exc
             )
-
-        yield r
