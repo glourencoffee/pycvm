@@ -42,12 +42,6 @@ class Document:
     def __repr__(self) -> str:
         return pprint.pformat(vars(self))
 
-def _read_country(country: str) -> Optional:
-    try:
-        return Country(country)
-    except ValueError:
-        return None
-
 def read_document(row) -> Document:
     doc = Document()
     doc.cnpj                       = read_required(row, 'CNPJ_Companhia',                    CNPJ)
