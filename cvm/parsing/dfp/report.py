@@ -4,7 +4,7 @@ import datetime
 import csv
 import logging
 from typing                  import Optional, Generator, Tuple, Dict, List, Iterable
-from cvm.parsing.normalize   import normalize_currency, normalize_quantity
+from cvm.parsing.util        import normalize_currency, normalize_quantity, date_from_string
 from cvm.parsing.dfp.account import Account
 from cvm.parsing.dfp.balance import Balance
 from cvm.parsing.dfp         import bpa, dre
@@ -124,9 +124,6 @@ _report_groups_by_name = {
     'DF Individual - Demonstração de Valor Adicionado':                  (ReportGroup.DVA,    False)
 }
 
-def _read_report_date(date_string: str) -> datetime.date:
-    return datetime.datetime.strptime(date_string, '%Y-%m-%d').date()
-
 def _read_report_group(group: str) -> Tuple[ReportGroup, bool]:
     try:
         return _report_groups_by_name[group]
@@ -200,9 +197,9 @@ def reader(csv_file, delimiter: str = ';') -> Generator[Report, None, None]:
             r.company.corporate_name = raw_report.corporate_name
             r.company.cvm_code       = raw_report.cvm_code
             r.currency               = normalize_currency(raw_report.currency_name)
-            r.reference_date         = _read_report_date(raw_report.reference_date)
-            r.fiscal_year_start      = _read_report_date(raw_report.fiscal_year_start) if raw_report.fiscal_year_start != '' else None
-            r.fiscal_year_end        = _read_report_date(raw_report.fiscal_year_end)
+            r.reference_date         = date_from_string(raw_report.reference_date)
+            r.fiscal_year_start      = date_from_string(raw_report.fiscal_year_start) if raw_report.fiscal_year_start != '' else None
+            r.fiscal_year_end        = date_from_string(raw_report.fiscal_year_end)
             r.fiscal_year_order      = FiscalYearOrder(raw_report.fiscal_year_order)
             r.accounts               = []
 
