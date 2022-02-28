@@ -1,6 +1,8 @@
 import datetime
+import itertools
 import pandas as pd
-from typing import Callable, Any, Dict, Generator, List
+from typing import Callable, Any, Dict, Generator, List, Sequence, Optional
+from cvm.datatypes.exceptions import BadDocument
 
 _currency_name_table = {
     'REAL': 'BRL'
@@ -91,3 +93,13 @@ def dataframe_from_reader(reader: Generator[Any, None, None], csv_file: str, del
         data.append(data_row)
     
     return pd.DataFrame(data=data, columns=attributes)
+
+def verify_fieldnames(expected: Sequence[str], actual: Sequence[str]):
+    for i, expected_fieldname in enumerate(expected):
+        try:
+            actual_fieldname = actual[i]
+        except KeyError:
+            raise BadDocument(f"missing fieldname '{expected_fieldname}' at index {i}")
+
+        if expected_fieldname != actual_fieldname:
+            raise BadDocument(f"invalid fieldname '{actual_fieldname}' at index {i} (expected: '{expected_fieldname}')")

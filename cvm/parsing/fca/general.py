@@ -9,9 +9,41 @@ from cvm.datatypes.country              import Country
 from cvm.datatypes.industry             import Industry
 from cvm.datatypes.issuer_status        import IssuerStatus
 from cvm.datatypes.controlling_interest import ControllingInterest
-from cvm.parsing.util                   import read_optional, read_required, date_from_string, value_error_instantiator, dataframe_from_reader
+from cvm.parsing.util                   import (
+    read_optional, read_required, date_from_string, value_error_instantiator,
+    dataframe_from_reader, verify_fieldnames
+)
 
 class Document:
+    __fieldnames__ = (
+        'CNPJ_Companhia',
+        'Data_Referencia',
+        'Versao',
+        'ID_Documento',
+        'Nome_Empresarial',
+        'Data_Nome_Empresarial',
+        'Nome_Empresarial_Anterior',
+        'Data_Constituicao',
+        'Codigo_CVM',
+        'Data_Registro_CVM',
+        'Categoria_Registro_CVM',
+        'Data_Categoria_Registro_CVM',
+        'Situacao_Registro_CVM',
+        'Data_Situacao_Registro_CVM',
+        'Pais_Origem',
+        'Pais_Custodia_Valores_Mobiliarios',
+        'Setor_Atividade',
+        'Descricao_Atividade',
+        'Situacao_Emissor',
+        'Data_Situacao_Emissor',
+        'Especie_Controle_Acionario',
+        'Data_Especie_Controle_Acionario',
+        'Dia_Encerramento_Exercicio_Social',
+        'Mes_Encerramento_Exercicio_Social',
+        'Data_Alteracao_Exercicio_Social',
+        'Pagina_Web'
+    )
+
     cnpj: CNPJ
     reference_date: date
     version: int
@@ -74,7 +106,11 @@ def read_document(row) -> Document:
     return doc
 
 def reader(csv_file: TextIO, delimiter: str = ';') -> Generator[Document, None, None]:
-    csv_reader = csv.DictReader(csv_file, delimiter=delimiter)
+    csv_reader = csv.reader(csv_file, delimiter=delimiter)
+    
+    verify_fieldnames(Document.__fieldnames__, next(csv_reader))
+
+    csv_reader = csv.DictReader(csv_file, fieldnames=Document.__fieldnames__, delimiter=delimiter)
 
     for row in csv_reader:
         doc = read_document(row)

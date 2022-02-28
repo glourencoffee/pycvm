@@ -1,0 +1,2 @@
+class BadDocument(Exception):
+    pass
