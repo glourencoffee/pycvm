@@ -120,7 +120,7 @@ class Country(DescriptiveIntEnum):
     TK = (117, 'Ilhas Tokelau')
     TC = (118, 'Ilhas Turks e Caicos')
     VI = (119, 'Ilhas Virgens (Estados Unidos)')
-    VG = (120, 'Ilhas Virgens (Inglaterra)')
+    VG = (120, 'Ilhas Virgens (Britânicas)')
     WF = (121, 'Ilhas Wallis e Futuna')
     IN = (122, 'índia')
     ID = (123, 'Indonésia')
