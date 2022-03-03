@@ -122,11 +122,13 @@ class StatementReader(ElementReader):
         elem.fiscal_year_end   = row.required('DT_FIM_EXERC', date_from_string)
 
     def read_account(self, row: CsvRow) -> Account:
-        acc = Account()
-        acc.code      = row.required('CD_CONTA',      str)
-        acc.name      = row.required('DS_CONTA',      str)
-        acc.quantity  = row.required('VL_CONTA',      float)
-        acc.is_fixed  = row.required('ST_CONTA_FIXA', str) == 'S'
+        acc = Account(
+            code      = row.required('CD_CONTA',      str),
+            name      = row.required('DS_CONTA',      str),
+            quantity  = row.required('VL_CONTA',      float),
+            is_fixed  = row.required('ST_CONTA_FIXA', str) == 'S'
+        )
+        
         return acc
 
 class BPStatementReader(StatementReader):
