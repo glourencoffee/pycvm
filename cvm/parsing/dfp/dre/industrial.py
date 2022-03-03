@@ -3,7 +3,7 @@ from cvm.parsing.dfp.account import Account
 from cvm.parsing.dfp.balance import Balance
 
 class IndustrialCompanyBalance(Balance):
-    _layout = [
+    __layout__ = (
         ('3.01', 'Receita de Venda de Bens e/ou Serviços',                 '_net_income'),
         ('3.02', 'Custo dos Bens e/ou Serviços Vendidos',                  '_cost_of_goods_sold'),
         ('3.03', 'Resultado Bruto',                                        '_gross_profit'),
@@ -15,7 +15,7 @@ class IndustrialCompanyBalance(Balance):
         ('3.09', 'Resultado Líquido das Operações Continuadas',            '_continuing_operation_result'),
         ('3.10', 'Resultado Líquido de Operações Descontinuadas',          '_discontinued_operation_result'),
         ('3.11', 'Lucro/Prejuízo Consolidado do Período',                  '_net_profit'),
-    ]
+    )
 
     __slots__ = [
         '_net_income',
