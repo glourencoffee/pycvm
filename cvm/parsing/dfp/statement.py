@@ -1,204 +1,187 @@
 import enum
 import collections
-import datetime
 import csv
 import logging
-from typing                  import Optional, Generator, Tuple, Dict, List, Iterable, TextIO
-from cvm.datatypes.statement import StatementType
-from cvm.datatypes.cnpj      import CNPJ
-from cvm.parsing.util        import normalize_currency, normalize_quantity, date_from_string
-from cvm.parsing.dfp.account import Account
-from cvm.parsing.dfp.balance import Balance
-from cvm.parsing.dfp         import bpa, dre
+from datetime                 import date
+from typing                   import Dict, List, DefaultDict
+from cvm.datatypes.currency   import Currency, CurrencySize
+from cvm.datatypes.statement  import StatementType, StatementMethod
+from cvm.datatypes.cnpj       import CNPJ
+from cvm.datatypes.enums      import DescriptiveIntEnum
+from cvm.parsing.csvrow       import CsvRow
+from cvm.parsing.util         import date_from_string
+from cvm.parsing.exceptions   import ParseError, BadDocument
+from cvm.parsing.dfp.account  import Account
+from cvm.parsing.dfp.balance  import Balance
+from cvm.parsing.dfp.element  import Element, ElementReader
 
-class Company:
-    cnpj: CNPJ
+class FiscalYearOrder(DescriptiveIntEnum):
+    LAST           = (1, 'Último')
+    SECOND_TO_LAST = (2, 'Penúltimo')
+
+class Statement(Element):
     corporate_name: str
-    cvm_code: str
+    cvm_code: int
+    currency: Currency
+    currency_size: CurrencySize
+    fiscal_year_end: date
 
-    def __repr__(self) -> str:
-        return f'<Company: { self.corporate_name } (CNPJ: { self.cnpj } / CVM: { self.cvm_code })>'
+class BPStatement(Statement):
+    accounts: Dict[FiscalYearOrder, List[Account]]
 
-class FiscalYearOrder(enum.Enum):
-    LAST           = 'ÚLTIMO'
-    SECOND_TO_LAST = 'PENÚLTIMO'
+class DStatement(Statement):
+    fiscal_year_start: date
+    accounts: List[Account]
 
-class Statement:
-    version: int
-    type: StatementType
-    consolidated: bool
-    company: Company
-    currency: str
-    accounts: list[Account]
-    reference_date: datetime.date
-    fiscal_year_start: Optional[datetime.date]
-    fiscal_year_end: datetime.date
-    fiscal_year_order: FiscalYearOrder
+class DFCStatement(DStatement):
+    method: StatementMethod
 
-    def balance(self) -> Balance:
-        if self.type == StatementType.BPA:
-            return self._parse_balance(cls_list=(bpa.FinancialCompanyBalance, bpa.IndustrialCompanyBalance, bpa.InsuranceCompanyBalance))
-        elif self.type == StatementType.DRE:
-            return self._parse_balance(cls_list=(dre.IndustrialCompanyBalance,))
+class DMPLStatement(Statement):
+    fiscal_year_start: date
+    accounts: Dict[str, Dict[FiscalYearOrder, List[Account]]]
 
-    def _parse_balance(self, cls_list) -> Balance:
-        accounts_iter = iter(self.accounts)
+class StatementCollection:
+    """Groups all types of statements in one place.
 
-        for cls in cls_list:
-            try:
-                return cls(accounts_iter)
-            except ValueError:
-                pass
+    This class is meant to be used as a member of `Document`, such that access to can be
+    performed by `Document.individual.bpa`, and so on.
 
-        # TODO: specialize exception?
-        raise ValueError('invalid/unknown balance layout')
+    This class also aids the class `Document` by validating that all statements are
+    present. A missing statement is considered a failure.
 
-class _RawStatement:
+    A DFC statement in particular may be direct or indirect, so this class ensures that
+    at least one is provided, which will be the one assigned to the property `dfc`.
+    """
+
     __slots__ = [
-        'reference_date',
-        'version',
-        'group',
-        'cnpj',
-        'corporate_name',
-        'cvm_code',
-        'currency_name',
-        'currency_size',
-        'fiscal_year_start',
-        'fiscal_year_end',
-        'fiscal_year_order',
-        'accounts'
+        '_bpa',
+        '_bpp',
+        '_dre',
+        '_dra',
+        '_dfc',
+        '_dmpl',
+        '_dva'
     ]
+    @property
+    def bpa(self) -> BPStatement:
+        return self._bpa
 
-    reference_date: str
-    version: str
-    group: str
-    cnpj: str
-    corporate_name: str
-    cvm_code: str
-    currency_name: str
-    currency_size: str
-    fiscal_year_start: str
-    fiscal_year_end: str
-    fiscal_year_order: str
-    accounts: List[Tuple[str, str, str, str]]
+    @property
+    def bpp(self) -> BPStatement:
+        return self._bpp
 
-_stmt_groups_by_name = {
-    'DF Consolidado - Balanço Patrimonial Ativo':                        (StatementType.BPA,    True),
-    'DF Individual - Balanço Patrimonial Ativo':                         (StatementType.BPA,    False),
-    'DF Consolidado - Balanço Patrimonial Passivo':                      (StatementType.BPP,    True),
-    'DF Individual - Balanço Patrimonial Passivo':                       (StatementType.BPP,    False),
-    'DF Consolidado - Demonstração do Resultado':                        (StatementType.DRE,    True),
-    'DF Individual - Demonstração do Resultado':                         (StatementType.DRE,    False),
-    'DF Consolidado - Demonstração de Resultado Abrangente':             (StatementType.DRA,    True),
-    'DF Individual - Demonstração de Resultado Abrangente':              (StatementType.DRA,    False),
-    'DF Consolidado - Demonstração do Fluxo de Caixa (Método Direto)':   (StatementType.DFC_MD, True),
-    'DF Individual - Demonstração do Fluxo de Caixa (Método Direto)':    (StatementType.DFC_MD, False),
-    'DF Consolidado - Demonstração do Fluxo de Caixa (Método Indireto)': (StatementType.DFC_MI, True),
-    'DF Individual - Demonstração do Fluxo de Caixa (Método Indireto)':  (StatementType.DFC_MI, False),
-    'DF Consolidado - Demonstração das Mutações do Patrimônio Líquido':  (StatementType.DMPL,   True),
-    'DF Individual - Demonstração das Mutações do Patrimônio Líquido':   (StatementType.DMPL,   False),
-    'DF Consolidado - Demonstração de Valor Adicionado':                 (StatementType.DVA,    True),
-    'DF Individual - Demonstração de Valor Adicionado':                  (StatementType.DVA,    False)
-}
+    @property
+    def dre(self) -> DStatement:
+        return self._dre
 
-def _read_statement_group(group: str) -> Tuple[StatementType, bool]:
-    try:
-        return _stmt_groups_by_name[group]
-    except KeyError:
-        raise ValueError(f"unknown DFP group '{ group }'") from None
+    @property
+    def dra(self) -> DStatement:
+        return self._dra
 
-def _read_raw_statements(csv_file, delimiter: str) -> Iterable[_RawStatement]:
-    """Reads and returns DFP stmts as an iterable of `_RawStatement`s."""
+    @property
+    def dmpl(self) -> DMPLStatement:
+        return self._dmpl
 
-    csv_reader = csv.DictReader(csv_file, delimiter=delimiter)
+    @property
+    def dfc(self) -> DFCStatement:
+        return self._dfc
 
-    stmts = {}
-    prev_row = ''
+    @property
+    def dva(self) -> DStatement:
+        return self._dva
 
-    for row_index, row in enumerate(csv_reader):
-        # Clean up duplicate rows. I don't know why, but some rows are duplicated.
-        if row == prev_row:
-            continue
-
-        prev_row = row
-
+    def __init__(self, statements: Dict[StatementType, Statement]):
         try:
-            cvm_code        = row['CD_CVM']
-            reference_date  = row['DT_REFER']
-            fiscal_year_end = row['DT_FIM_EXERC']
-        except KeyError as e:
-            logging.warn('failed to read row %d: %s', row_index, e)
-            continue
+            self._bpa  = statements[StatementType.BPA]
+            self._bpp  = statements[StatementType.BPP]
+            self._dre  = statements[StatementType.DRE]
+            self._dra  = statements[StatementType.DRA]
+            self._dmpl = statements[StatementType.DMPL]
+            self._dva  = statements[StatementType.DVA]
+        except KeyError as exc:
+            stmt_type: StatementType = exc.args[0]
 
-        stmt_key = cvm_code + reference_date + fiscal_year_end
+            raise BadDocument(f'missing {stmt_type.name} statement') from None
 
-        try:
-            stmt = stmts[stmt_key]
-        except KeyError:
-            stmt = _RawStatement()
-
+        if StatementType.DFC_MD in statements:
+            self._dfc = statements[StatementType.DFC_MD]
+        else:
             try:
-                stmt.version           = row['VERSAO']
-                stmt.group             = row['GRUPO_DFP']
-                stmt.cnpj              = CNPJ(row['CNPJ_CIA'])
-                stmt.corporate_name    = row['DENOM_CIA']
-                stmt.currency_name     = row['MOEDA']
-                stmt.currency_size     = row['ESCALA_MOEDA']
-                stmt.fiscal_year_start = row['DT_INI_EXERC'] if 'DT_INI_EXERC' in row else ''
-                stmt.fiscal_year_order = row['ORDEM_EXERC']
-            except KeyError as e:
-                logging.warn('failed to read row %d: %s', row_index, e)
-                continue
+                self._dfc = statements[StatementType.DFC_MI]
+            except KeyError:
+                raise BadDocument('document has neither DFC-MD nor DFC-MI')
 
-            stmt.cvm_code        = cvm_code
-            stmt.reference_date  = reference_date
-            stmt.fiscal_year_end = fiscal_year_end
-            stmt.accounts        = []
+class StatementReader(ElementReader):
+    __elemtype__ = Statement
 
-            stmts[stmt_key] = stmt
-                
-        stmt.accounts.append((row['CD_CONTA'], row['DS_CONTA'], row['VL_CONTA'], row['ST_CONTA_FIXA']))
+    def read(self, elem: Statement, row: CsvRow):
+        elem.corporate_name    = row.required('DENOM_CIA',    str)
+        elem.cvm_code          = row.required('CD_CVM',       int)
+        elem.currency          = row.required('MOEDA',        Currency)
+        elem.currency_size     = row.required('ESCALA_MOEDA', CurrencySize)
+        elem.fiscal_year_end   = row.required('DT_FIM_EXERC', date_from_string)
 
-    return stmts.values()
-
-def _read_statement(raw_stmt: _RawStatement) -> Statement:
-    stmt = Statement()
-    stmt.version                 = int(raw_stmt.version)
-    stmt.type, stmt.consolidated = _read_statement_group(raw_stmt.group)
-    stmt.company                 = Company()
-    stmt.company.cnpj            = raw_stmt.cnpj
-    stmt.company.corporate_name  = raw_stmt.corporate_name
-    stmt.company.cvm_code        = raw_stmt.cvm_code
-    stmt.currency                = normalize_currency(raw_stmt.currency_name)
-    stmt.reference_date          = date_from_string(raw_stmt.reference_date)
-    stmt.fiscal_year_start       = date_from_string(raw_stmt.fiscal_year_start) if raw_stmt.fiscal_year_start != '' else None
-    stmt.fiscal_year_end         = date_from_string(raw_stmt.fiscal_year_end)
-    stmt.fiscal_year_order       = FiscalYearOrder(raw_stmt.fiscal_year_order)
-    stmt.accounts                = []
-
-    for code, name, quantity, is_fixed in raw_stmt.accounts:
+    def read_account(self, row: CsvRow) -> Account:
         acc = Account()
-        acc.code     = code
-        acc.name     = name
-        acc.quantity = normalize_quantity(float(quantity), raw_stmt.currency_size)
-        acc.is_fixed = is_fixed == 'S'
+        acc.code      = row.required('CD_CONTA',      str)
+        acc.name      = row.required('DS_CONTA',      str)
+        acc.quantity  = row.required('VL_CONTA',      float)
+        acc.is_fixed  = row.required('ST_CONTA_FIXA', str) == 'S'
+        return acc
 
-        stmt.accounts.append(acc)
+class BPStatementReader(StatementReader):
+    __elemtype__ = BPStatement
 
-    return stmt
+    def read(self, elem: BPStatement, row: CsvRow):
+        super().read(elem, row)
 
-def reader(csv_file: TextIO, delimiter: str = ';') -> Generator[Statement, None, None]:
-    """Returns a generator that reads a DFP stmt from a CSV file."""
+        fiscal_year_order = row.required('ORDEM_EXERC', FiscalYearOrder)
 
-    for raw_stmt in _read_raw_statements(csv_file, delimiter):
+        if not hasattr(elem, 'accounts'):
+            elem.accounts = collections.defaultdict(list)
+
+        elem.accounts[fiscal_year_order].append(self.read_account(row))
+
+class DStatementReader(StatementReader):
+    __elemtype__ = DStatement
+
+    def read(self, elem: DStatement, row: CsvRow):
+        super().read(elem, row)
+
+        elem.fiscal_year_start = row.required('DT_INI_EXERC', date_from_string)
+        fiscal_year_order      = row.required('ORDEM_EXERC',  FiscalYearOrder)
+        
+        if not hasattr(elem, 'accounts'):
+            elem.accounts = collections.defaultdict(list)
+
+        elem.accounts[fiscal_year_order].append(self.read_account(row))
+
+class DFCStatementReader(DStatementReader):
+    __elemtype__ = DFCStatement
+
+    def read(self, elem: DFCStatement, row: CsvRow):
+        super().read(elem, row)
+
+        stmt_name = row.required('GRUPO_DFP', str)
+
         try:
-            stmt = _read_statement(raw_stmt)
-            yield stmt
-        except ValueError as exc:
-            logging.warn(
-                'failed to parse stmt of company %s (CVM: %s, fiscal year end: %s): %s',
-                raw_stmt.corporate_name,
-                raw_stmt.cvm_code,
-                raw_stmt.fiscal_year_end,
-                exc
-            )
+            method_name = stmt_name.split('(')[1].rstrip(')')
+        except IndexError:
+            raise ParseError('GRUPO_DFP', stmt_name)
+
+        elem.method = StatementMethod(method_name)
+
+class DMPLStatementReader(StatementReader):
+    __elemtype__ = DMPLStatement
+
+    def read(self, elem: DMPLStatement, row: CsvRow):
+        super().read(elem, row)
+
+        elem.fiscal_year_start = row.required('DT_INI_EXERC', date_from_string)
+        fiscal_year_order      = row.required('ORDEM_EXERC',  FiscalYearOrder)
+        column                 = row.required('COLUNA_DF',    str)
+
+        if not hasattr(elem, 'accounts'):
+            elem.accounts = collections.defaultdict(lambda: collections.defaultdict(list))
+
+        elem.accounts[fiscal_year_order][column].append(self.read_account(row))

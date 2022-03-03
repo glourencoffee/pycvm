@@ -2,7 +2,6 @@ import datetime
 import itertools
 import pandas as pd
 from typing import Callable, Any, Dict, Generator, List, Sequence, Optional
-from cvm.datatypes.exceptions import BadDocument
 
 _currency_name_table = {
     'REAL': 'BRL'
@@ -15,6 +14,9 @@ _currency_size_factors = {
 
 def date_from_string(date_string: str) -> datetime.date:
     return datetime.datetime.strptime(date_string, '%Y-%m-%d').date()
+
+def date_to_string(date: datetime.time) -> str:
+    return date.strftime('%Y-%m-%d')
 
 def cnpj_to_int(cnpj: str) -> int:
     integral_cnpj = ''.join(c for c in cnpj if c.isdigit())
@@ -53,20 +55,6 @@ def normalize_quantity(quantity: float, currency_size: str) -> float:
     except KeyError:
         raise ValueError(f"unknown currency size '{ currency_size }'")
 
-def read_required(row: Dict[str, str], fieldname: str, instantiator: Callable[[str], Any]):
-    return instantiator(row[fieldname])
-
-def read_optional(row: Dict[str, str], fieldname: str, instantiator: Callable[[str], Any]):
-    try:
-        value = row[fieldname]
-
-        if value == '':
-            return None
-        
-        return instantiator(value)
-    except KeyError:
-        return None
-
 def value_error_instantiator(underlying_instantiator, default = None):
     def wrapper(value):
         try:
@@ -93,13 +81,3 @@ def dataframe_from_reader(reader: Generator[Any, None, None], csv_file: str, del
         data.append(data_row)
     
     return pd.DataFrame(data=data, columns=attributes)
-
-def verify_fieldnames(expected: Sequence[str], actual: Sequence[str]):
-    for i, expected_fieldname in enumerate(expected):
-        try:
-            actual_fieldname = actual[i]
-        except KeyError:
-            raise BadDocument(f"missing fieldname '{expected_fieldname}' at index {i}")
-
-        if expected_fieldname != actual_fieldname:
-            raise BadDocument(f"invalid fieldname '{actual_fieldname}' at index {i} (expected: '{expected_fieldname}')")

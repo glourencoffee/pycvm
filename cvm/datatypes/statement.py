@@ -10,3 +10,7 @@ class StatementType(DescriptiveIntEnum):
     DFC_MI = (7, 'Demonstração de Fluxo de Caixa (Método Indireto)')
     DMPL   = (8, 'Demonstração das Mutações do Patrimônio Líquido')
     DVA    = (9, 'Demonstração de Valor Adicionado')
+
+class StatementMethod(DescriptiveIntEnum):
+    DIRECT   = (1, 'Método Direto')
+    INDIRECT = (2, 'Método Indireto')

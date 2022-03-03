@@ -1,7 +1,7 @@
 from cvm.parsing.dfp.balance import Balance
 
 class IndustrialCompanyBalance(Balance):
-    _layout = [
+    __layout__ = (
         ('1',       'Ativo Total',                    '_total_assets'),
         ('1.01',    'Ativo Circulante',               '_current_assets'),
         ('1.01.01', 'Caixa e Equivalentes de Caixa',  '_cash_and_cash_equivalents'),
@@ -17,7 +17,7 @@ class IndustrialCompanyBalance(Balance):
         ('1.02.02', 'Investimentos',                  '_long_term_investiments'),
         ('1.02.03', 'Imobilizado',                    '_fixed_assets'),
         ('1.02.04', 'Intangível',                     '_intangible_assets')
-    ]
+    )
 
     __slots__ = [
         '_total_assets',

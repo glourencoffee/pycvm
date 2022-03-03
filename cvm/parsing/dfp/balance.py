@@ -1,19 +1,19 @@
 import zlib
-from typing                  import List, Tuple, Iterable
+from typing                  import Sequence, Tuple, Iterable
 from pprint                  import pformat
 from cvm.parsing.dfp.account import Account
+from cvm.parsing.exceptions  import ParseError
 
 class Balance:
-    _layout: List[Tuple[str, str, str]] = []
-    
+    __layout__: Sequence[Tuple[str, str, str]] = []
     __slots__ = []
 
     def __init__(self, accounts: Iterable[Account]):
-        max_layout_level = max(t[0].count('.') + 1 for t in self._layout)
+        max_layout_level = max(t[0].count('.') + 1 for t in self.__layout__)
 
-        for i, (expected_code, expected_name, attr) in enumerate(self._layout):
+        for i, (expected_code, expected_name, attr) in enumerate(self.__layout__):
             if attr not in self.__slots__:
-                raise AttributeError(f"invalid attribute '{ attr }'")
+                raise AttributeError(f"logic error: invalid attribute '{attr}'")
 
             # Loop through accounts so as to "consume" non-fixed, greater-level ones,
             # as only fixed accounts whose level is <= `max_layout_level` are compared
@@ -22,13 +22,13 @@ class Balance:
                 try:
                     acc = next(accounts)
                 except StopIteration:
-                    raise ValueError(f"missing account data at index { i }: too few accounts given)") from None
+                    raise ValueError(f"missing account data at index {i}: too few accounts given)") from None
 
                 if acc.is_fixed and acc.level <= max_layout_level:
                     if acc.code != expected_code:
-                        raise ValueError(f"invalid account code '{ acc.code }' at index { i } (expected: '{ expected_code }')")
+                        raise ValueError(f"invalid account code '{acc.code}' at index {i} (expected: '{expected_code}')")
                     elif acc.name != expected_name:
-                        raise ValueError(f"invalid account name '{ acc.name }' at index { i } (expected: '{ expected_name }')")
+                        raise ValueError(f"invalid account name '{acc.name}' at index {i} (expected: '{expected_name}')")
 
                     setattr(self, attr, acc.quantity)
                     break
