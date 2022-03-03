@@ -1,28 +1,29 @@
 import unittest
-from cvm.parsing.dfp.bpa import IndustrialCompanyBalance
+from cvm.parsing.dfp.account import Account
+from cvm.parsing.dfp.bpa     import IndustrialCompanyBalance
 
 class TestBPA(unittest.TestCase):
     def test_industrial(self):
         # BPA/2010 of CENTRAIS ELET BRAS S.A. - ELETROBRAS (ELET)
         accounts = [
-            ('1',       'Ativo Total',                    146901002),
-            ('1.01',    'Ativo Circulante',               32805947),
-            ('1.01.01', 'Caixa e Equivalentes de Caixa',  11278387),
-            ('1.01.02', 'Aplicações Financeiras',         6774073),
-            ('1.01.03', 'Contas a Receber',               4016006),
-            ('1.01.04', 'Estoques',                       676609),
-            ('1.01.05', 'Ativos Biológicos',              0),
-            ('1.01.06', 'Tributos a Recuperar',           0),
-            ('1.01.07', 'Despesas Antecipadas',           40418),
-            ('1.01.08', 'Outros Ativos Circulantes',      10020454),
-            ('1.02',    'Ativo Não Circulante',           114095055),
-            ('1.02.01', 'Ativo Realizável a Longo Prazo', 60423937),
-            ('1.02.02', 'Investimentos',                  4724648),
-            ('1.02.03', 'Imobilizado',                    46682498),
-            ('1.02.04', 'Intangível',                     2263972)
+            Account('1',       'Ativo Total',                    146901002, True),
+            Account('1.01',    'Ativo Circulante',               32805947,  True),
+            Account('1.01.01', 'Caixa e Equivalentes de Caixa',  11278387,  True),
+            Account('1.01.02', 'Aplicações Financeiras',         6774073,   True),
+            Account('1.01.03', 'Contas a Receber',               4016006,   True),
+            Account('1.01.04', 'Estoques',                       676609,    True),
+            Account('1.01.05', 'Ativos Biológicos',              0,         True),
+            Account('1.01.06', 'Tributos a Recuperar',           0,         True),
+            Account('1.01.07', 'Despesas Antecipadas',           40418,     True),
+            Account('1.01.08', 'Outros Ativos Circulantes',      10020454,  True),
+            Account('1.02',    'Ativo Não Circulante',           114095055, True),
+            Account('1.02.01', 'Ativo Realizável a Longo Prazo', 60423937,  True),
+            Account('1.02.02', 'Investimentos',                  4724648,   True),
+            Account('1.02.03', 'Imobilizado',                    46682498,  True),
+            Account('1.02.04', 'Intangível',                     2263972,   True)
         ]
 
-        balance = IndustrialCompanyBalance(accounts)
+        balance = IndustrialCompanyBalance(iter(accounts))
         balance.validate()
 
         self.assertEquals(balance.total_assets,              146901002)
