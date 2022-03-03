@@ -44,7 +44,7 @@ class Element:
 class ElementReader:
     __elemtype__ = Element
 
-    __slots__ = ['_reader', '_cached_row_data']
+    __slots__ = ['_csv_dick_reader', '_cached_row_data']
 
     def __init__(self, file):
         # Yes, "dick" reader, just for fun.
