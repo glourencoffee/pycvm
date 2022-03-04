@@ -44,7 +44,7 @@ class IndustrialCompanyBalance(Balance):
             self._operating_result = None
         else:
             # EBITDA = EBIT + DA
-            self._operating_result = self.operating_profit + self._depreciation_and_amortization
+            self._operating_result = self.operating_profit + abs(self._depreciation_and_amortization)
 
     def parse_other(self, account: Account):
         if self._da_found_count == 2:
@@ -146,16 +146,16 @@ class IndustrialCompanyBalance(Balance):
         return self._tax_expenses
     
     @property
-    def continuing_operation_results(self) -> float:
+    def continuing_operation_result(self) -> float:
         """Resultado Líquido das Operações Continuadas"""
 
-        return self._continuing_operation_results
+        return self._continuing_operation_result
     
     @property
-    def discontinued_operation_results(self) -> float:
+    def discontinued_operation_result(self) -> float:
         """Resultado Líquido das Operações Descontinuadas"""
 
-        return self._discontinued_operation_results
+        return self._discontinued_operation_result
     
     @property
     def net_profit(self) -> float:
