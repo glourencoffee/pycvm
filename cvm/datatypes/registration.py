@@ -6,8 +6,8 @@ class RegistrationCategory(DescriptiveIntEnum):
     UNKNOWN = (99, 'Não Identificado')
 
 class RegistrationStatus(DescriptiveIntEnum):
-    ACTIVE            = (1, 'Ativo')
-    UNDER_EXAMINATION = (2, 'Em análise')
-    NOT_GRANTED       = (3, 'Não concedido')
-    SUSPENDED         = (4, 'Suspenso')
-    CANCELED          = (5, 'Cancelada')
+    ACTIVE         = (1, 'Ativo')
+    UNDER_ANALYSIS = (2, 'Em análise')
+    NOT_GRANTED    = (3, 'Não concedido')
+    SUSPENDED      = (4, 'Suspenso')
+    CANCELED       = (5, 'Cancelada')
