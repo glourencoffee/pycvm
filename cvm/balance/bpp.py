@@ -27,7 +27,7 @@ class IndustrialBPP(Balance):
     deferred_profit_and_revenue: decimal.Decimal
     net_equity: decimal.Decimal
 
-    __layout__ = (
+    __individual_layout__ = (
         ('2',        'Passivo Total',                                                'total_liabilities'),
         ('2.01',     'Passivo Circulante',                                           'current_liabilities'),
         ('2.01.01',  'Obrigações Sociais e Trabalhistas',                            'social_and_labor_obligations'),
@@ -47,8 +47,37 @@ class IndustrialBPP(Balance):
         # https://www.ehow.com.br/considerado-receita-apropriar-info_340699/
         # https://greedhead.net/what-is-a-liability-arising-when-a-customer-pays-in-advance-of-receiving-service/
         ('2.02.06',  'Lucros e Receitas a Apropriar',                                'deferred_profit_and_revenue'),
-        
+
         ('2.03',     'Patrimônio Líquido',                                           'net_equity'),
+        # ('2.03.01',  'Capital Social Realizado',                                     '_'),
+        # ('2.03.02',  'Reservas de Capital',                                          '_'),
+        # ('2.03.03',  'Reservas de Reavaliação',                                      '_'),
+        # ('2.03.04',  'Reservas de Lucros',                                           '_'),
+        # ('2.03.05',  'Lucros/Prejuízos Acumulados',                                  '_'),
+        # ('2.03.06',  'Ajustes de Avaliação Patrimonial',                             '_'),
+        # ('2.03.07',  'Ajustes Acumulados de Conversão',                              '_'),
+        # ('2.03.08',  'Outros Resultados Abrangentes',                                '_'),
+        # ('2.03.09',  'Participação dos Acionistas Não Controladores',                '_'),
+    )
+
+    __consolidated_layout__ = (
+        ('2',        'Passivo Total',                                                'total_liabilities'),
+        ('2.01',     'Passivo Circulante',                                           'current_liabilities'),
+        ('2.01.01',  'Obrigações Sociais e Trabalhistas',                            'social_and_labor_obligations'),
+        ('2.01.02',  'Fornecedores',                                                 'suppliers'),
+        ('2.01.03',  'Obrigações Fiscais',                                           'current_tax_liabilities'),
+        ('2.01.04',  'Empréstimos e Financiamentos',                                 'current_loans_and_financing'),
+        ('2.01.05',  'Outras Obrigações',                                            'other_current_liabilities'),
+        ('2.01.06',  'Provisões',                                                    'current_provisions'),
+        ('2.01.07',  'Passivos sobre Ativos Não-Correntes a Venda e Descontinuados', 'current_liabilities_on_noncurrent_assets'),
+        ('2.02',     'Passivo Não Circulante',                                       'noncurrent_liabilities'),
+        ('2.02.01',  'Empréstimos e Financiamentos',                                 'noncurrent_loans_and_financing'),
+        ('2.02.02',  'Outras Obrigações',                                            'other_noncurrent_liabilities'),
+        ('2.02.03',  'Tributos Diferidos',                                           'deferred_tax_liabilities'),
+        ('2.02.04',  'Provisões',                                                    'noncurrent_provisions'),
+        ('2.02.05',  'Passivos sobre Ativos Não-Correntes a Venda e Descontinuados', 'noncurrent_liabilities_on_noncurrent_assets'),
+        ('2.02.06',  'Lucros e Receitas a Apropriar',                                'deferred_profit_and_revenue'),
+        ('2.03',     'Patrimônio Líquido Consolidado',                               'net_equity'),
         # ('2.03.01',  'Capital Social Realizado',                                     '_'),
         # ('2.03.02',  'Reservas de Capital',                                          '_'),
         # ('2.03.03',  'Reservas de Reavaliação',                                      '_'),

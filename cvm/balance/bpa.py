@@ -49,7 +49,8 @@ class IndustrialBPA(Balance):
     intangible_assets: decimal.Decimal
     """Ativo Intangível"""
 
-    __layout__ = (
+    __individual_layout__ = \
+    __consolidated_layout__ = (
         ('1',       'Ativo Total',                    'total_assets'),
         ('1.01',    'Ativo Circulante',               'current_assets'),
         ('1.01.01', 'Caixa e Equivalentes de Caixa',  'cash_and_cash_equivalents'),

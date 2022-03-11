@@ -11,19 +11,25 @@ class AccountParser:
         return
 
 class Balance:
-    __layout__: typing.Sequence[typing.Tuple[str, str, str]] = []
+    __individual_layout__: typing.Sequence[typing.Tuple[str, str, str]] = []
+    __consolidated_layout__: typing.Sequence[typing.Tuple[str, str, str]] = []
     __parser__ = AccountParser
 
     def validate(self):
         pass
 
-def make_balance(cls, accounts: typing.Iterable[Account]):
-    max_layout_level = max(t[0].count('.') + 1 for t in cls.__layout__)
+def make_balance(cls, accounts: typing.Iterable[Account], is_individual: bool):
+    if is_individual:
+        layout = cls.__individual_layout__
+    else:
+        layout = cls.__consolidated_layout__
+
+    max_layout_level = max(t[0].count('.') + 1 for t in layout)
     parser           = cls.__parser__()
 
     attributes = {}
 
-    for i, (expected_code, expected_name, attr) in enumerate(cls.__layout__):
+    for i, (expected_code, expected_name, attr) in enumerate(layout):
         # Loop through accounts so as to "consume" non-fixed, greater-level ones,
         # as only fixed accounts whose level is <= `max_layout_level` are compared
         # against the layout.

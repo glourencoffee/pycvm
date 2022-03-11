@@ -118,7 +118,7 @@ class IndustrialDRE(Balance):
     def ebt(self) -> decimal.Decimal:
         return self.earnings_before_tax
 
-    __layout__ = (
+    __individual_layout__ = (
         ('3.01', 'Receita de Venda de Bens e/ou Serviços',                 'net_revenue'),
         ('3.02', 'Custo dos Bens e/ou Serviços Vendidos',                  'cost_of_goods_sold'),
         ('3.03', 'Resultado Bruto',                                        'gross_profit'),
@@ -130,6 +130,20 @@ class IndustrialDRE(Balance):
         ('3.09', 'Resultado Líquido das Operações Continuadas',            'continuing_operation_result'),
         ('3.10', 'Resultado Líquido de Operações Descontinuadas',          'discontinued_operation_result'),
         ('3.11', 'Lucro/Prejuízo do Período',                              'net_profit'),
+    )
+
+    __consolidated_layout__ = (
+        ('3.01', 'Receita de Venda de Bens e/ou Serviços',                 'net_revenue'),
+        ('3.02', 'Custo dos Bens e/ou Serviços Vendidos',                  'cost_of_goods_sold'),
+        ('3.03', 'Resultado Bruto',                                        'gross_profit'),
+        ('3.04', 'Despesas/Receitas Operacionais',                         'operating_revenue_and_expenses'),
+        ('3.05', 'Resultado Antes do Resultado Financeiro e dos Tributos', 'operating_profit'),
+        ('3.06', 'Resultado Financeiro',                                   'financial_result'),
+        ('3.07', 'Resultado Antes dos Tributos sobre o Lucro',             'earnings_before_tax'),
+        ('3.08', 'Imposto de Renda e Contribuição Social sobre o Lucro',   'tax_expenses'),
+        ('3.09', 'Resultado Líquido das Operações Continuadas',            'continuing_operation_result'),
+        ('3.10', 'Resultado Líquido de Operações Descontinuadas',          'discontinued_operation_result'),
+        ('3.11', 'Lucro/Prejuízo Consolidado do Período',                  'net_profit'),
     )
 
     __parser__ = IndustrialDREParser
