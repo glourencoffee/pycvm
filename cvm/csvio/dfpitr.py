@@ -101,7 +101,7 @@ class StatementReader(RegularDocumentBodyReader):
             is_fixed  = row.required('ST_CONTA_FIXA', str) == 'S'
         )
 
-    def read_fiscal_year_accounts(self, batch) -> typing.DefaultDict[FiscalYearOrder, AccountTuple]:
+    def read_fiscal_year_accounts(self, batch) -> typing.DefaultDict[FiscalYearOrder, typing.List[Account]]:
         accounts = collections.defaultdict(list)
 
         for row in batch:
@@ -125,10 +125,8 @@ class BPxReader(StatementReader):
 
         for fy_order, accounts in fy_accounts.items():
             docs[fy_order] = BPx(
-                currency        = currency,
-                currency_size   = currency_size,
                 fiscal_year_end = fiscal_year_end,
-                accounts        = AccountTuple(accounts)
+                accounts        = AccountTuple(currency, currency_size, accounts)
             )
 
         return types.MappingProxyType(docs)
@@ -148,11 +146,9 @@ class DRxDVAReader(StatementReader):
 
         for fy_order, accounts in fy_accounts.items():
             docs[fy_order] = DRxDVA(
-                currency          = currency,
-                currency_size     = currency_size,
                 fiscal_year_start = fiscal_year_start,
                 fiscal_year_end   = fiscal_year_end,
-                accounts          = AccountTuple(accounts)
+                accounts          = AccountTuple(currency, currency_size, accounts)
             )
         
         return types.MappingProxyType(docs)
@@ -184,11 +180,9 @@ class DFCReader(StatementReader):
         for fy_order, accounts in fy_accounts.items():
             docs[fy_order] = DFC(
                 method            = dfc_method,
-                currency          = currency,
-                currency_size     = currency_size,
                 fiscal_year_start = fiscal_year_start,
                 fiscal_year_end   = fiscal_year_end,
-                accounts          = AccountTuple(accounts)
+                accounts          = AccountTuple(currency, currency_size, accounts)
             )
 
         return types.MappingProxyType(docs)
@@ -221,11 +215,9 @@ class DMPLReader(StatementReader):
             immutable_columns = {}
             
             for column, accounts in columns.items():
-                immutable_columns[column] = AccountTuple(accounts)
+                immutable_columns[column] = AccountTuple(currency, currency_size, accounts)
 
             docs[fy_order] = DMPL(
-                currency          = currency,
-                currency_size     = currency_size,
                 fiscal_year_start = fiscal_year_start,
                 fiscal_year_end   = fiscal_year_end,
                 columns           = types.MappingProxyType(immutable_columns)

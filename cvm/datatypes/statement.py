@@ -27,8 +27,6 @@ class FiscalYearOrder(DescriptiveIntEnum):
 class BPx:
     """This data structure is shared between the BPA and BPP statement types."""
 
-    currency: Currency
-    currency_size: CurrencySize
     fiscal_year_end: datetime.date
     accounts: AccountTuple
 
@@ -41,8 +39,6 @@ class DRxDVA:
     - Statement of Value Added ('Demonstração de Valor Adicionado' or 'DVA')
     """
 
-    currency: Currency
-    currency_size: CurrencySize
     fiscal_year_start: datetime.date
     fiscal_year_end: datetime.date
     accounts: AccountTuple
@@ -53,8 +49,6 @@ class DFC:
     """
 
     method: DFCMethod
-    currency: Currency
-    currency_size: CurrencySize
     fiscal_year_start: datetime.date
     fiscal_year_end: datetime.date
     accounts: AccountTuple
@@ -63,8 +57,6 @@ class DFC:
 class DMPL:
     """Statement of Change in Net Equity ('Demonstração das Mutações do Patrimônio Líquido' or 'DMPL')"""
 
-    currency: Currency
-    currency_size: CurrencySize
     fiscal_year_start: datetime.date
     fiscal_year_end: datetime.date
     columns: typing.Mapping[str, AccountTuple]
