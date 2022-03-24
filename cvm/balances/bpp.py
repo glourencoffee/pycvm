@@ -1,6 +1,6 @@
 import dataclasses
 import decimal
-from cvm.balance.balance import Balance
+from cvm.balances.balance import Balance
 
 @dataclasses.dataclass(init=True, frozen=True)
 class IndustrialBPP(Balance):

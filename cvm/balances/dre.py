@@ -1,7 +1,7 @@
 import dataclasses
 import decimal
 import typing
-from cvm.balance.balance   import Balance, AccountParser
+from cvm.balances.balance  import Balance, AccountParser
 from cvm.datatypes.account import Account
 
 class IndustrialDREParser(AccountParser):
