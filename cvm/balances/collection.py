@@ -26,7 +26,7 @@ class BalanceCollection:
         return cls.from_statements(stmts)
 
     @classmethod
-    def from_statements(cls, collection: statement.StatementCollection, is_individual: bool) -> BalanceCollection:
+    def from_statements(cls, collection: statement.StatementCollection, balance_type: statement.BalanceType) -> BalanceCollection:
         raise NotImplementedException(cls, 'from_statements')
 
 @dataclasses.dataclass(init=True, frozen=True)
@@ -36,9 +36,9 @@ class IndustrialCollection:
     dre: m_dre.IndustrialDRE
 
     @classmethod
-    def from_statements(cls, collection: statement.StatementCollection, is_individual: bool) -> IndustrialCollection:
+    def from_statements(cls, collection: statement.StatementCollection, balance_type: statement.BalanceType) -> IndustrialCollection:
         return IndustrialCollection(
-            bpa = balance.make_balance(m_bpa.IndustrialBPA, collection.bpa.accounts, is_individual=is_individual),
-            bpp = balance.make_balance(m_bpp.IndustrialBPP, collection.bpp.accounts, is_individual=is_individual),
-            dre = balance.make_balance(m_dre.IndustrialDRE, collection.dre.accounts, is_individual=is_individual)
+            bpa = balance.make_balance(m_bpa.IndustrialBPA, collection.bpa.accounts, balance_type),
+            bpp = balance.make_balance(m_bpp.IndustrialBPP, collection.bpp.accounts, balance_type),
+            dre = balance.make_balance(m_dre.IndustrialDRE, collection.dre.accounts, balance_type)
         )

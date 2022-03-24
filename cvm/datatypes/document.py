@@ -8,7 +8,7 @@ from cvm.datatypes.issuer                     import IssuerCompany
 from cvm.datatypes.enums                      import DescriptiveIntEnum
 from cvm.datatypes.security                   import Security
 from cvm.datatypes.shareholder_department     import ShareholderDepartmentPerson
-from cvm.datatypes.statement                  import FiscalYearOrder, StatementCollection
+from cvm.datatypes.statement                  import FiscalYearOrder, StatementCollection, BalanceType
 from cvm.datatypes.tax_id                     import CNPJ
 
 class DocumentType(DescriptiveIntEnum):
@@ -86,3 +86,9 @@ class DFPITR(RegularDocument):
 
     individual: typing.Mapping[FiscalYearOrder, StatementCollection]
     consolidated: typing.Mapping[FiscalYearOrder, StatementCollection]
+
+    def __getitem__(self, balance_type: BalanceType) -> StatementCollection:
+        if balance_type == BalanceType.CONSOLIDATED:
+            return self.consolidated
+        else:
+            return self.individual

@@ -1,7 +1,9 @@
 import decimal
+import enum
 import typing
-from cvm.datatypes.account import Account
-from cvm.exceptions        import BalanceLayoutError, NotImplementedException
+from cvm.datatypes.account   import Account
+from cvm.datatypes.statement import BalanceType
+from cvm.exceptions          import BalanceLayoutError, NotImplementedException
 
 class AccountParser:
     def parse(self, account: Account):
@@ -18,8 +20,8 @@ class Balance:
     def validate(self):
         pass
 
-def make_balance(cls, accounts: typing.Iterable[Account], is_individual: bool):
-    if is_individual:
+def make_balance(cls, accounts: typing.Iterable[Account], balance_type: BalanceType):
+    if balance_type == BalanceType.INDIVIDUAL:
         layout = cls.__individual_layout__
     else:
         layout = cls.__consolidated_layout__

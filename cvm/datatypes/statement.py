@@ -15,6 +15,10 @@ class StatementType(DescriptiveIntEnum):
     DMPL   = (7, 'Demonstração das Mutações do Patrimônio Líquido')
     DVA    = (8, 'Demonstração de Valor Adicionado')
 
+class BalanceType(DescriptiveIntEnum):
+    INDIVIDUAL   = (0, 'Individual')
+    CONSOLIDATED = (1, 'Consolidado')
+
 class DFCMethod(DescriptiveIntEnum):
     DIRECT   = (1, 'Método Direto')
     INDIRECT = (2, 'Método Indireto')
