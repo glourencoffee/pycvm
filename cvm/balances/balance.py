@@ -27,6 +27,7 @@ def make_balance(cls, accounts: typing.Iterable[Account], is_individual: bool):
     max_layout_level = max(t[0].count('.') + 1 for t in layout)
     parser           = cls.__parser__()
 
+    accounts = iter(accounts)
     attributes = {}
 
     for i, (expected_code, expected_name, attr) in enumerate(layout):
