@@ -96,7 +96,7 @@ class StatementReader(RegularDocumentBodyReader):
     def read_account(self, row: CSVRow) -> Account:
         return Account(
             code      = row.required('CD_CONTA',      str),
-            name      = row.required('DS_CONTA',      str),
+            name      = row.optional('DS_CONTA',      str),
             quantity  = row.required('VL_CONTA',      decimal.Decimal),
             is_fixed  = row.required('ST_CONTA_FIXA', str) == 'S'
         )
@@ -338,8 +338,14 @@ def reader(file: zipfile.ZipFile, flag: BalanceFlag = BalanceFlag.CONSOLIDATED|B
             con_readers = {}
 
         while True:
-            head          = head_reader.read()
+            try:
+                head = head_reader.read()
+            except StopIteration:
+                break
+
             head_batch_id = _row_batch_id(head.cnpj, head.reference_date, head.version)
+
+            # print(head.company_name, 'version:', head.version)
 
             def read_statements(readers):
                 statements = collections.defaultdict(dict)
@@ -347,7 +353,7 @@ def reader(file: zipfile.ZipFile, flag: BalanceFlag = BalanceFlag.CONSOLIDATED|B
                 for stmt_type, stmt_reader in readers.items():
                     try:
                         fy_stmts = stmt_reader.read(head_batch_id)
-                    except UnexpectedBatch:
+                    except (UnexpectedBatch, StopIteration):
                         continue
 
                     for fy_order, stmt in fy_stmts.items():
@@ -382,10 +388,12 @@ def reader(file: zipfile.ZipFile, flag: BalanceFlag = BalanceFlag.CONSOLIDATED|B
                     consolidated = types.MappingProxyType({})
 
             except BadDocument as exc:
-                raise BadDocument(
+                # TODO: Throwing exceptions stops yielding further documents.
+                #       Maybe store all exceptions and throw them in one go later?
+                print(
                     f"failed to read {head.type.name} statements from document #{head.id} "
                     f"('{head.company_name}' version {head.version}): {exc}"
-                ) from None
+                )
 
             yield DFPITR(
                 cnpj           = head.cnpj,

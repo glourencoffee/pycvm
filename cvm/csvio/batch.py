@@ -44,4 +44,6 @@ class CSVBatchReader:
                 batch.rows.append(row)
             else:
                 self._cached_row = row
-                return batch
+                break
+
+        return batch

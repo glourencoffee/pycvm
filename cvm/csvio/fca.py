@@ -19,7 +19,7 @@ from cvm.datatypes.registration               import RegistrationCategory, Regis
 from cvm.datatypes.security                   import Security, SecurityType, MarketSegment, MarketType, PreferredShareType
 from cvm.datatypes.shareholder_department     import ShareholderDepartmentPerson
 from cvm.datatypes.trading_admission          import TradingAdmission
-from cvm.doctypes.fca                         import FCA
+from cvm.datatypes.document                   import FCA
 from cvm.utils                                import date_from_string
 
 class _MemberNameList:
@@ -127,7 +127,7 @@ class IssuerCompanyReader(RegularDocumentBodyReader):
         return IssuerCompany(
             corporate_name                    = row.required('Nome_Empresarial',                  str),
             corporate_name_last_changed       = row.optional('Data_Nome_Empresarial',             date_from_string),
-            previous_corporate_name           = row.required('Nome_Empresarial_Anterior',         str),
+            previous_corporate_name           = row.optional('Nome_Empresarial_Anterior',         str, allow_empty_string=False),
             establishment_date                = row.required('Data_Constituicao',                 date_from_string),
             cnpj                              = row.required('CNPJ_Companhia',                    CNPJ),
             cvm_code                          = row.required('Codigo_CVM',                        int),
@@ -167,7 +167,7 @@ class SecurityReader(RegularDocumentBodyReader):
             market_managing_entity_name   = row.required('Entidade_Administradora',       str),
             preferred_share_type          = row.optional('Classe_Acao_Preferencial',      PreferredShareType),
             bdr_unit_composition          = row.optional('Composicao_BDR_Unit',           str),
-            trading_symbol                = row.required('Codigo_Negociacao',             str),
+            trading_symbol                = row.optional('Codigo_Negociacao',             str),
             trading_started               = row.optional('Data_Inicio_Negociacao',        date_from_string),
             trading_ended                 = row.optional('Data_Fim_Negociacao',           date_from_string),
             market_segment                = row.optional('Segmento',                      MarketSegment),

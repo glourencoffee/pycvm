@@ -87,7 +87,7 @@ class DFPITR(RegularDocument):
     individual: typing.Mapping[FiscalYearOrder, StatementCollection]
     consolidated: typing.Mapping[FiscalYearOrder, StatementCollection]
 
-    def __getitem__(self, balance_type: BalanceType) -> StatementCollection:
+    def __getitem__(self, balance_type: BalanceType) -> typing.Mapping[FiscalYearOrder, StatementCollection]:
         if balance_type == BalanceType.CONSOLIDATED:
             return self.consolidated
         else:

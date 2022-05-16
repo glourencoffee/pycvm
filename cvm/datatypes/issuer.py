@@ -36,7 +36,7 @@ class IssuerCompany:
     corporate_name_last_changed: typing.Optional[datetime.date]
     """(1.2) 'Data da última alteração do nome empresarial'"""
 
-    previous_corporate_name: str
+    previous_corporate_name: typing.Optional[str]
     """(1.3) 'Nome empresarial anterior'"""
 
     establishment_date: datetime.date

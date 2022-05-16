@@ -1,7 +1,7 @@
 import decimal
 import enum
 import typing
-from cvm.datatypes.account   import Account
+from cvm.datatypes.account   import Account, AccountTuple
 from cvm.datatypes.statement import BalanceType
 from cvm.exceptions          import BalanceLayoutError, NotImplementedException
 
@@ -20,7 +20,7 @@ class Balance:
     def validate(self):
         pass
 
-def make_balance(cls, accounts: typing.Iterable[Account], balance_type: BalanceType):
+def make_balance(cls, accounts: AccountTuple, balance_type: BalanceType):
     if balance_type == BalanceType.INDIVIDUAL:
         layout = cls.__individual_layout__
     else:
@@ -29,6 +29,7 @@ def make_balance(cls, accounts: typing.Iterable[Account], balance_type: BalanceT
     max_layout_level = max(t[0].count('.') + 1 for t in layout)
     parser           = cls.__parser__()
 
+    accounts = accounts.normalized()
     accounts = iter(accounts)
     attributes = {}
 
