@@ -1,9 +1,7 @@
 import dataclasses
 import datetime
 import typing
-from cvm.datatypes.address import Address
-from cvm.datatypes.contact import Contact
-from cvm.datatypes.tax_id  import CNPJ
+from cvm import datatypes
 
 @dataclasses.dataclass(init=True, frozen=True)
 class BookkeepingAgent:
@@ -12,13 +10,13 @@ class BookkeepingAgent:
     name: str
     """(4.1) 'Nome'"""
 
-    cnpj: CNPJ
+    cnpj: datatypes.CNPJ
     """(4.2) 'CNPJ'"""
 
-    address: Address
+    address: datatypes.Address
     """(4.3) 'Endereço'"""
 
-    contact: Contact
+    contact: datatypes.Contact
     """(N/A) This information is not required by the Instruction, but is provided nonetheless."""
 
     activity_started: typing.Optional[datetime.date]

@@ -1,12 +1,9 @@
 import dataclasses
 import datetime
 import typing
-from cvm.datatypes.enums   import DescriptiveIntEnum
-from cvm.datatypes.tax_id  import CPF
-from cvm.datatypes.address import Address
-from cvm.datatypes.contact import Contact
+from cvm import datatypes
 
-class InvestorRelationsOfficerType(DescriptiveIntEnum):
+class InvestorRelationsOfficerType(datatypes.DescriptiveIntEnum):
     INVESTOR_RELATIONS_OFFICER = (1, 'Diretor de relações com investidores')
     LIQUIDATOR                 = (2, 'Liquidante')
     JUDICIAL_ADMINISTRATOR     = (3, 'Administrador judicial')
@@ -24,16 +21,16 @@ class InvestorRelationsOfficer:
     name: str
     """(5.2) 'Nome'"""
 
-    cpf: CPF
+    cpf: datatypes.CPF
     """(5.3) 'CPF ou CNPJ'
     
     Note: Although this Instruction considers CNPJ, the actual CVM database only stores CPF.
     """
 
-    address: Address
+    address: datatypes.Address
     """(5.5) 'Endereço'"""
 
-    contact: Contact
+    contact: datatypes.Contact
     """(5.4, 5.6, 5.7, 5.8, 5.9) Contact info"""
 
     activity_started: typing.Optional[datetime.date]

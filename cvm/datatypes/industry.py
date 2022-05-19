@@ -1,6 +1,6 @@
-from cvm.datatypes.enums import DescriptiveIntEnum
+from cvm import datatypes
 
-class Industry(DescriptiveIntEnum):
+class Industry(datatypes.DescriptiveIntEnum):
     OIL_AND_GAS                                          = (1010, 'Petróleo e Gás')
     PETROCHEMICAL_AND_RUBBER                             = (1020, 'Petroquímicos e Borracha')
     MINERAL_EXTRACTION                                   = (1030, 'Extração Mineral')

@@ -1,6 +1,6 @@
-from cvm.datatypes.enums import DescriptiveIntEnum
+from cvm import datatypes
 
-class ControllingInterest(DescriptiveIntEnum):
+class ControllingInterest(datatypes.DescriptiveIntEnum):
     GOVERNMENTAL         = (1, 'Estatal')
     GOVERNMENTAL_HOLDING = (2, 'Estatal Holding')
     FOREIGN              = (3, 'Estrangeiro')

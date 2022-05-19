@@ -1,6 +1,4 @@
 import enum
-from datetime import date
-from typing   import Optional
 
 class CaseInsentiveEnum(enum.Enum):
     @classmethod

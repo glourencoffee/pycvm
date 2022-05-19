@@ -1,7 +1,6 @@
 import dataclasses
 import typing
-from cvm.datatypes.federated_state import FederatedState
-from cvm.datatypes.country         import Country
+from cvm import datatypes
 
 @dataclasses.dataclass(init=True, frozen=True)
 class Address:
@@ -9,8 +8,8 @@ class Address:
     complement: str
     district: str
     city: str
-    state: typing.Union[FederatedState, str]
-    country: Country
+    state: typing.Union[datatypes.FederatedState, str]
+    country: datatypes.Country
     postal_code: int
 
     __slots__ = (

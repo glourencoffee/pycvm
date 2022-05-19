@@ -1,23 +1,21 @@
 import csv
 import typing
-from cvm.datatypes.tax_id   import CNPJ
-from cvm.datatypes.document import RegularDocument, DocumentType
-from cvm.csvio.row          import CSVRow
-from cvm.csvio.batch        import CSVBatch, CSVBatchReader
-from cvm.utils              import date_from_string
+from cvm             import datatypes, utils
+from cvm.csvio.row   import CSVRow
+from cvm.csvio.batch import CSVBatch, CSVBatchReader
 
 class RegularDocumentHeadReader:
     def __init__(self, file, delimiter: str = ';'):
         self._dict_reader = csv.DictReader(file, delimiter=delimiter)
 
-    def read(self) -> RegularDocument:
+    def read(self) -> datatypes.RegularDocument:
         row = next(self._dict_reader)
         row = CSVRow(row)
 
         strtype = row.required('CATEG_DOC', str)
         doctype = None
 
-        for dt in DocumentType:
+        for dt in datatypes.DocumentType:
             if dt.name == strtype:
                 doctype = dt
                 break
@@ -26,15 +24,15 @@ class RegularDocumentHeadReader:
             # TODO
             ...
 
-        return RegularDocument(
-            cnpj           = row.required('CNPJ_CIA',  CNPJ),
-            reference_date = row.required('DT_REFER',  date_from_string),
+        return datatypes.RegularDocument(
+            cnpj           = row.required('CNPJ_CIA',  datatypes.CNPJ),
+            reference_date = row.required('DT_REFER',  utils.date_from_string),
             version        = row.required('VERSAO',    int),
             company_name   = row.required('DENOM_CIA', str),
             cvm_code       = row.required('CD_CVM',    int),
             type           = doctype,
             id             = row.required('ID_DOC',    int),
-            receipt_date   = row.required('DT_RECEB',  date_from_string),
+            receipt_date   = row.required('DT_RECEB',  utils.date_from_string),
             url            = row.required('LINK_DOC',  str),
         )
 

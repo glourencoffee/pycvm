@@ -1,17 +1,9 @@
 import dataclasses
 import datetime
 import typing
-from cvm.datatypes.auditor                    import Auditor
-from cvm.datatypes.bookkeeping_agent          import BookkeepingAgent
-from cvm.datatypes.investor_relations_officer import InvestorRelationsOfficer
-from cvm.datatypes.issuer                     import IssuerCompany
-from cvm.datatypes.enums                      import DescriptiveIntEnum
-from cvm.datatypes.security                   import Security
-from cvm.datatypes.shareholder_department     import ShareholderDepartmentPerson
-from cvm.datatypes.statement                  import FiscalYearOrder, StatementCollection, BalanceType
-from cvm.datatypes.tax_id                     import CNPJ
+from cvm import datatypes
 
-class DocumentType(DescriptiveIntEnum):
+class DocumentType(datatypes.DescriptiveIntEnum):
     FCA       = (0, 'Formulário Cadastral')
     DFP       = (1, 'Demonstrações Fiscais Padronizadas')
     ITR       = (2, 'Informe Trimestral')
@@ -26,7 +18,7 @@ class RegularDocument:
     This class implements the attributes that are common to all regular documents.
     """
 
-    cnpj: CNPJ
+    cnpj: datatypes.CNPJ
     reference_date: datetime.date
     version: int
     company_name: str
@@ -48,22 +40,22 @@ class FCA(RegularDocument):
     [1] https://conteudo.cvm.gov.br/export/sites/cvm/legislacao/instrucoes/anexos/400/inst480consolid.pdf ("Anexo 22")
     """
 
-    issuer_company: typing.Optional[IssuerCompany]
+    issuer_company: typing.Optional[datatypes.IssuerCompany]
     """Instruction Item 1"""
 
-    securities: typing.Tuple[Security]
+    securities: typing.Tuple[datatypes.Security]
     """Instruction Item 2"""
 
-    auditors: typing.Tuple[Auditor]
+    auditors: typing.Tuple[datatypes.Auditor]
     """Instruction Item 3"""
 
-    bookkeeping_agents: typing.Tuple[BookkeepingAgent]
+    bookkeeping_agents: typing.Tuple[datatypes.BookkeepingAgent]
     """Instruction Item 4"""
     
-    investor_relations_department: typing.Tuple[InvestorRelationsOfficer]
+    investor_relations_department: typing.Tuple[datatypes.InvestorRelationsOfficer]
     """Instruction Item 5"""
 
-    shareholder_department: typing.Tuple[ShareholderDepartmentPerson]
+    shareholder_department: typing.Tuple[datatypes.ShareholderDepartmentPerson]
     """Instruction Item 6"""
 
 
@@ -84,11 +76,11 @@ class DFPITR(RegularDocument):
     two types of document, use the attribute `RegularDocument.type`.
     """
 
-    individual: typing.Mapping[FiscalYearOrder, StatementCollection]
-    consolidated: typing.Mapping[FiscalYearOrder, StatementCollection]
+    individual: typing.Mapping[datatypes.FiscalYearOrder, datatypes.StatementCollection]
+    consolidated: typing.Mapping[datatypes.FiscalYearOrder, datatypes.StatementCollection]
 
-    def __getitem__(self, balance_type: BalanceType) -> typing.Mapping[FiscalYearOrder, StatementCollection]:
-        if balance_type == BalanceType.CONSOLIDATED:
+    def __getitem__(self, balance_type: datatypes.BalanceType) -> typing.Mapping[datatypes.FiscalYearOrder, datatypes.StatementCollection]:
+        if balance_type == datatypes.BalanceType.CONSOLIDATED:
             return self.consolidated
         else:
             return self.individual

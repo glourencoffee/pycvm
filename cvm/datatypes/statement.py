@@ -1,11 +1,9 @@
 import dataclasses
 import datetime
 import typing
-from cvm.datatypes.account  import Account, AccountTuple
-from cvm.datatypes.currency import Currency, CurrencySize
-from cvm.datatypes.enums    import DescriptiveIntEnum
+from cvm import datatypes
 
-class StatementType(DescriptiveIntEnum):
+class StatementType(datatypes.DescriptiveIntEnum):
     BPA    = (1, 'Balanço Patrimonial Ativo')
     BPP    = (2, 'Balanço Patrimonial Passivo')
     DRE    = (3, 'Demonstração de Resultado')
@@ -15,15 +13,15 @@ class StatementType(DescriptiveIntEnum):
     DMPL   = (7, 'Demonstração das Mutações do Patrimônio Líquido')
     DVA    = (8, 'Demonstração de Valor Adicionado')
 
-class BalanceType(DescriptiveIntEnum):
+class BalanceType(datatypes.DescriptiveIntEnum):
     INDIVIDUAL   = (0, 'Individual')
     CONSOLIDATED = (1, 'Consolidado')
 
-class DFCMethod(DescriptiveIntEnum):
+class DFCMethod(datatypes.DescriptiveIntEnum):
     DIRECT   = (1, 'Método Direto')
     INDIRECT = (2, 'Método Indireto')
 
-class FiscalYearOrder(DescriptiveIntEnum):
+class FiscalYearOrder(datatypes.DescriptiveIntEnum):
     LAST           = (1, 'Último')
     SECOND_TO_LAST = (2, 'Penúltimo')
 
@@ -32,7 +30,7 @@ class BPx:
     """This data structure is shared between the BPA and BPP statement types."""
 
     fiscal_year_end: datetime.date
-    accounts: AccountTuple
+    accounts: datatypes.AccountTuple
 
 @dataclasses.dataclass(init=True, frozen=True)
 class DRxDVA:
@@ -45,7 +43,7 @@ class DRxDVA:
 
     fiscal_year_start: datetime.date
     fiscal_year_end: datetime.date
-    accounts: AccountTuple
+    accounts: datatypes.AccountTuple
 
 @dataclasses.dataclass(init=True, frozen=True)
 class DFC:
@@ -55,7 +53,7 @@ class DFC:
     method: DFCMethod
     fiscal_year_start: datetime.date
     fiscal_year_end: datetime.date
-    accounts: AccountTuple
+    accounts: datatypes.AccountTuple
 
 @dataclasses.dataclass(init=True, frozen=True)
 class DMPL:
@@ -63,7 +61,7 @@ class DMPL:
 
     fiscal_year_start: datetime.date
     fiscal_year_end: datetime.date
-    columns: typing.Mapping[str, AccountTuple]
+    columns: typing.Mapping[str, datatypes.AccountTuple]
 
 @dataclasses.dataclass(init=True, frozen=True)
 class StatementCollection:

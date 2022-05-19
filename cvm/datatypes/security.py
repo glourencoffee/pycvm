@@ -1,9 +1,9 @@
 import dataclasses
 import datetime
 import typing
-from cvm.datatypes.enums import DescriptiveIntEnum
+from cvm import datatypes
 
-class SecurityType(DescriptiveIntEnum):
+class SecurityType(datatypes.DescriptiveIntEnum):
     STOCK                               = (1,  'Ações Ordinárias')
     DEBENTURE                           = (2,  'Debêntures')
     CONVERTIBLE_DEBENTURE               = (3,  'Debêntures conversíveis')
@@ -15,7 +15,7 @@ class SecurityType(DescriptiveIntEnum):
     AGRIBUSINESS_RECEIVABLE_CERTIFICATE = (9,  'Certificado de recebíveis do agronegócio')
     COLLECTIVE_INVESTMENT_BOND          = (10, 'Título de investimento coletivo')
 
-class MarketType(DescriptiveIntEnum):
+class MarketType(datatypes.DescriptiveIntEnum):
     NON_ORGANIZED_OTC = (1, 'Balcão não-organizado')
     ORGANIZED_OTC     = (2, 'Balcão organizado')
     STOCK_EXCHANGE    = (3, 'Bolsa')
@@ -24,14 +24,14 @@ class MarketType(DescriptiveIntEnum):
     def is_organized(self) -> bool:
         return self.value != MarketType.NON_ORGANIZED_OTC
 
-class MarketSegment(DescriptiveIntEnum):
+class MarketSegment(datatypes.DescriptiveIntEnum):
     NEW_MARKET                      = (1, 'Novo Mercado')
     CORPORATE_GOVERNANCE_L1         = (2, 'Nível 1')
     CORPORATE_GOVERNANCE_L2         = (3, 'Nível 2')
     BOVESPA_PLUS                    = (4, 'Bovespa Mais')
     BOVESPA_PLUS_L2                 = (5, 'Bovespa Mais Nível 2')
 
-class PreferredShareType(DescriptiveIntEnum):
+class PreferredShareType(datatypes.DescriptiveIntEnum):
     PNA = (1, 'Preferencial Classe A')
     PNB = (2, 'Preferencial Classe B')
     PNC = (3, 'Preferencial Classe C')

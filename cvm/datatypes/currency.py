@@ -1,8 +1,8 @@
-from cvm.datatypes.enums import DescriptiveIntEnum
+from cvm import datatypes
 
-class Currency(DescriptiveIntEnum):
+class Currency(datatypes.DescriptiveIntEnum):
     BRL = (1, 'Real')
 
-class CurrencySize(DescriptiveIntEnum):
+class CurrencySize(datatypes.DescriptiveIntEnum):
     UNIT     = (1, 'Unidade')
     THOUSAND = (2, 'Mil')

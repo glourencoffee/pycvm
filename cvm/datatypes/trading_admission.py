@@ -1,10 +1,10 @@
 import dataclasses
 import datetime
-from cvm.datatypes.country import Country
+from cvm import datatypes
 
 @dataclasses.dataclass(init=True, frozen=True)
 class TradingAdmission:
-    foreign_country: Country
+    foreign_country: datatypes.Country
     """(1.14) 'País estrangeiro em que os valores mobiliários são admitidos à negociação'"""
 
     admission_date: datetime.date

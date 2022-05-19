@@ -1,7 +1,7 @@
 import dataclasses
 import datetime
 import typing
-from cvm.datatypes.tax_id import TaxID, CPF
+from cvm import datatypes
 
 @dataclasses.dataclass(init=True, frozen=True)
 class Auditor:
@@ -10,7 +10,7 @@ class Auditor:
     name: str
     """(3.1) 'Nome'"""
 
-    tax_id: TaxID
+    tax_id: datatypes.TaxID
     """(3.2) 'CNPJ/CPF'"""
 
     cvm_code: int
@@ -25,7 +25,7 @@ class Auditor:
     technical_manager_name: str
     """(3.4) 'Responsável técnico'"""
 
-    technical_manager_cpf: CPF
+    technical_manager_cpf: datatypes.CPF
     """(3.5) 'CPF do responsável técnico'"""
 
     technical_manager_activity_started: datetime.date

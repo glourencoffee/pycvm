@@ -1,18 +1,9 @@
 import dataclasses
 import typing
 import datetime
-from cvm.datatypes.enums                 import DescriptiveIntEnum
-from cvm.datatypes.tax_id                import CNPJ
-from cvm.datatypes.registration          import RegistrationCategory, RegistrationStatus
-from cvm.datatypes.country               import Country
-from cvm.datatypes.trading_admission     import TradingAdmission
-from cvm.datatypes.industry              import Industry
-from cvm.datatypes.controlling_interest  import ControllingInterest
-from cvm.datatypes.communication_channel import CommunicationChannel
-from cvm.datatypes.address               import Address
-from cvm.datatypes.contact               import Contact
+from cvm import datatypes
 
-class IssuerStatus(DescriptiveIntEnum):
+class IssuerStatus(datatypes.DescriptiveIntEnum):
     PRE_OPERATIONAL_PHASE           = (1, 'Fase Pré-Operacional')
     OPERATIONAL_PHASE               = (2, 'Fase Operacional')
     JUDICIAL_RECOVERY_OR_EQUIVALENT = (3, 'Em Recuperação Judicial ou Equivalente')
@@ -22,7 +13,7 @@ class IssuerStatus(DescriptiveIntEnum):
     JUDICIAL_LIQUIDATION            = (7, 'Em Liquidação Judicial')
     STALLED                         = (8, 'Paralisada')
 
-class IssuerAddressType(DescriptiveIntEnum):
+class IssuerAddressType(datatypes.DescriptiveIntEnum):
     HEADQUARTER     = (1, 'Sede')
     MAILING_ADDRESS = (2, 'Endereço para correspondência')
 
@@ -42,7 +33,7 @@ class IssuerCompany:
     establishment_date: datetime.date
     """(1.4) 'Data de constituição'"""
 
-    cnpj: CNPJ
+    cnpj: datatypes.CNPJ
     """(1.5) 'CNPJ'"""
 
     cvm_code: int
@@ -51,28 +42,28 @@ class IssuerCompany:
     cvm_registration_date: datetime.date
     """(1.7) 'Data de registro na CVM'"""
 
-    cvm_registration_category: RegistrationCategory
+    cvm_registration_category: datatypes.RegistrationCategory
     """(1.8) 'Categoria de registro na CVM'"""
 
     cvm_registration_category_started: datetime.date
     """(1.9) 'Data de registro na atual categoria CVM'"""
 
-    cvm_registration_status: RegistrationStatus
+    cvm_registration_status: datatypes.RegistrationStatus
     """(1.10) 'Situação de registro na CVM'"""
 
     cvm_registration_status_started: datetime.date
     """(1.11) 'Data de início da situação do registro na CVM'"""
 
-    home_country: Country
+    home_country: datatypes.Country
     """(1.12) 'País de origem'"""
 
-    securities_custody_country: Country
+    securities_custody_country: datatypes.Country
     """(1.13) 'País em que os valores mobiliários estão custodiados'"""
 
-    trading_admissions: typing.Tuple[TradingAdmission]
+    trading_admissions: typing.Tuple[datatypes.TradingAdmission]
     """(1.14, 1.15) Collection of foreign countries admitted to trading and date of admission."""
 
-    industry: Industry
+    industry: datatypes.Industry
     """(1.16) 'Setor de atividade'"""
 
     issuer_status: IssuerStatus
@@ -81,7 +72,7 @@ class IssuerCompany:
     issuer_status_started: datetime.date
     """(1.18) 'Data de início da situação do emissor'"""
 
-    controlling_interest: ControllingInterest
+    controlling_interest: datatypes.ControllingInterest
     """(1.19) 'Espécie de controle acionário'"""
 
     controlling_interest_last_changed: typing.Optional[datetime.date]
@@ -99,13 +90,13 @@ class IssuerCompany:
     webpage: str
     """(1.23) 'Página do emissor na rede mundial de computadores'"""
 
-    communication_channels: typing.Tuple[CommunicationChannel]
+    communication_channels: typing.Tuple[datatypes.CommunicationChannel]
     """(1.24) 'Canais de comunicação utilizados pelo emissor'"""
 
-    addresses: typing.Tuple[Address]
+    addresses: typing.Tuple[datatypes.Address]
     """(1.25) 'Endereço'"""
 
-    contact: Contact
+    contact: datatypes.Contact
     """(1.26, 1.27, 1.28, 1.29, 1.30) Contact data"""
 
     __slots__ = (

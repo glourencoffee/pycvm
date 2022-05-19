@@ -1,6 +1,6 @@
-from cvm.datatypes.enums import DescriptiveIntEnum
+from cvm import datatypes
 
-class Country(DescriptiveIntEnum):
+class Country(datatypes.DescriptiveIntEnum):
     AF = (1,   'Afeganistão')
     ZA = (2,   'África do Sul')
     AL = (3,   'Albânia')

@@ -1,6 +1,6 @@
-from cvm.datatypes.enums import DescriptiveIntEnum
+from cvm import datatypes
 
-class FederatedState(DescriptiveIntEnum):
+class FederatedState(datatypes.DescriptiveIntEnum):
     """Enumerates all of the 27 Federate States of Brazil."""
     
     AC = (1,  'Acre')

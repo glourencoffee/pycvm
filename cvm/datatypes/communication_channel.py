@@ -1,7 +1,7 @@
 import dataclasses
-from cvm.datatypes.federated_state import FederatedState
+from cvm import datatypes
 
 @dataclasses.dataclass(init=True, frozen=True)
 class CommunicationChannel:
     name: str
-    state: FederatedState
+    state: datatypes.FederatedState

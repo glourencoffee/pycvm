@@ -1,26 +1,10 @@
 import contextlib
 import io
-import os
 import typing
 import zipfile
-from cvm.csvio.document                       import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
-from cvm.csvio.row                            import CSVRow
-from cvm.datatypes.address                    import Address
-from cvm.datatypes.auditor                    import Auditor
-from cvm.datatypes.bookkeeping_agent          import BookkeepingAgent
-from cvm.datatypes.contact                    import Contact
-from cvm.datatypes.controlling_interest       import ControllingInterest
-from cvm.datatypes.country                    import Country
-from cvm.datatypes.industry                   import Industry
-from cvm.datatypes.investor_relations_officer import InvestorRelationsOfficer, InvestorRelationsOfficerType
-from cvm.datatypes.issuer                     import IssuerCompany, IssuerStatus
-from cvm.datatypes.tax_id                     import CNPJ, CPF, InvalidTaxID
-from cvm.datatypes.registration               import RegistrationCategory, RegistrationStatus
-from cvm.datatypes.security                   import Security, SecurityType, MarketSegment, MarketType, PreferredShareType
-from cvm.datatypes.shareholder_department     import ShareholderDepartmentPerson
-from cvm.datatypes.trading_admission          import TradingAdmission
-from cvm.datatypes.document                   import FCA
-from cvm.utils                                import date_from_string
+from cvm                import datatypes, utils
+from cvm.csvio.document import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
+from cvm.csvio.row      import CSVRow
 
 class _MemberNameList:
     head_filename: str
@@ -73,19 +57,19 @@ class AddressReader(RegularDocumentBodyReader):
     def batch_id(self, row: CSVRow) -> int:
         return row.required('ID_Documento', int)
 
-    def read(self, document_id: int) -> typing.List[Address]:
+    def read(self, document_id: int) -> typing.List[datatypes.Address]:
         addresses = []
 
         for row in self.read_expected_batch(document_id):
             # Tipo_Endereco						Pais	CEP		DDI_Telefone	DDD_Telefone	Telefone	DDI_Fax	DDD_Fax	Fax	Email
 
-            addresses.append(Address(
+            addresses.append(datatypes.Address(
                 street      = row.required('Logradouro',   str),
                 complement  = row.required('Complemento',  str),
                 district    = row.required('Bairro',       str),
                 city        = row.required('Cidade',       str),
                 state       = row.required('Sigla_UF',     str),
-                country     = row.required('Pais',         Country),
+                country     = row.required('Pais',         datatypes.Country),
                 postal_code = row.required('CEP',          int)
             ))
 
@@ -97,15 +81,15 @@ class TradingAdmissionReader(RegularDocumentBodyReader):
     def batch_id(self, row: CSVRow):
         return row.required('ID_Documento', int)
 
-    def read(self, document_id: int) -> typing.List[TradingAdmission]:
+    def read(self, document_id: int) -> typing.List[datatypes.TradingAdmission]:
         batch = self.read_expected_batch(document_id)
 
         trading_admissions = []
 
         for row in batch:
-            trading_admissions.append(TradingAdmission(
-                foreign_country = row.required('Pais',                     Country),
-                admission_date  = row.required('Data_Admissao_Negociacao', date_from_string)
+            trading_admissions.append(datatypes.TradingAdmission(
+                foreign_country = row.required('Pais',                     datatypes.Country),
+                admission_date  = row.required('Data_Admissao_Negociacao', utils.utils.date_from_string)
             ))
 
         return trading_admissions
@@ -118,35 +102,35 @@ class IssuerCompanyReader(RegularDocumentBodyReader):
 
     def read(self,
              document_id: int,
-             trading_admissions: typing.Sequence[TradingAdmission],
-             addresses: typing.Sequence[Address]
-    ) -> IssuerCompany:
+             trading_admissions: typing.Sequence[datatypes.TradingAdmission],
+             addresses: typing.Sequence[datatypes.Address]
+    ) -> datatypes.IssuerCompany:
         batch = self.read_expected_batch(document_id)
         row   = batch.rows[0]
 
-        return IssuerCompany(
+        return datatypes.IssuerCompany(
             corporate_name                    = row.required('Nome_Empresarial',                  str),
-            corporate_name_last_changed       = row.optional('Data_Nome_Empresarial',             date_from_string),
+            corporate_name_last_changed       = row.optional('Data_Nome_Empresarial',             utils.date_from_string),
             previous_corporate_name           = row.optional('Nome_Empresarial_Anterior',         str, allow_empty_string=False),
-            establishment_date                = row.required('Data_Constituicao',                 date_from_string),
-            cnpj                              = row.required('CNPJ_Companhia',                    CNPJ),
+            establishment_date                = row.required('Data_Constituicao',                 utils.date_from_string),
+            cnpj                              = row.required('CNPJ_Companhia',                    datatypes.CNPJ),
             cvm_code                          = row.required('Codigo_CVM',                        int),
-            cvm_registration_date             = row.required('Data_Registro_CVM',                 date_from_string),
-            cvm_registration_category         = row.required('Categoria_Registro_CVM',            RegistrationCategory),
-            cvm_registration_category_started = row.required('Data_Categoria_Registro_CVM',       date_from_string),
-            cvm_registration_status           = row.required('Situacao_Registro_CVM',             RegistrationStatus),
-            cvm_registration_status_started   = row.required('Data_Situacao_Registro_CVM',        date_from_string),
-            home_country                      = row.required('Pais_Origem',                       Country),
-            securities_custody_country        = row.required('Pais_Custodia_Valores_Mobiliarios', Country),
+            cvm_registration_date             = row.required('Data_Registro_CVM',                 utils.date_from_string),
+            cvm_registration_category         = row.required('Categoria_Registro_CVM',            datatypes.RegistrationCategory),
+            cvm_registration_category_started = row.required('Data_Categoria_Registro_CVM',       utils.date_from_string),
+            cvm_registration_status           = row.required('Situacao_Registro_CVM',             datatypes.RegistrationStatus),
+            cvm_registration_status_started   = row.required('Data_Situacao_Registro_CVM',        utils.date_from_string),
+            home_country                      = row.required('Pais_Origem',                       datatypes.Country),
+            securities_custody_country        = row.required('Pais_Custodia_Valores_Mobiliarios', datatypes.Country),
             trading_admissions                = tuple(iter(trading_admissions)),
-            industry                          = row.required('Setor_Atividade',                   Industry),
-            issuer_status                     = row.required('Situacao_Emissor',                  IssuerStatus),
-            issuer_status_started             = row.required('Data_Situacao_Emissor',             date_from_string),
-            controlling_interest              = row.required('Especie_Controle_Acionario',        ControllingInterest),
-            controlling_interest_last_changed = row.optional('Data_Especie_Controle_Acionario',   date_from_string),
+            industry                          = row.required('Setor_Atividade',                   datatypes.Industry),
+            issuer_status                     = row.required('Situacao_Emissor',                  datatypes.IssuerStatus),
+            issuer_status_started             = row.required('Data_Situacao_Emissor',             utils.date_from_string),
+            controlling_interest              = row.required('Especie_Controle_Acionario',        datatypes.ControllingInterest),
+            controlling_interest_last_changed = row.optional('Data_Especie_Controle_Acionario',   utils.date_from_string),
             fiscal_year_end_day               = row.required('Dia_Encerramento_Exercicio_Social', int),
             fiscal_year_end_month             = row.required('Mes_Encerramento_Exercicio_Social', int),
-            fiscal_year_last_changed          = row.optional('Data_Alteracao_Exercicio_Social',   date_from_string),
+            fiscal_year_last_changed          = row.optional('Data_Alteracao_Exercicio_Social',   utils.date_from_string),
             webpage                           = row.required('Pagina_Web',                        str),
             communication_channels            = (),
             addresses                         = tuple(iter(addresses)),
@@ -159,23 +143,23 @@ class SecurityReader(RegularDocumentBodyReader):
     def batch_id(self, row: CSVRow) -> int:
         return row.required('ID_Documento', int)
 
-    def read_one(self, row: CSVRow) -> Security:
-        return Security(
-            type                          = row.required('Valor_Mobiliario',              SecurityType),
-            market_type                   = row.required('Mercado',                       MarketType),
+    def read_one(self, row: CSVRow) -> datatypes.Security:
+        return datatypes.Security(
+            type                          = row.required('Valor_Mobiliario',              datatypes.SecurityType),
+            market_type                   = row.required('Mercado',                       datatypes.MarketType),
             market_managing_entity_symbol = row.required('Sigla_Entidade_Administradora', str),
             market_managing_entity_name   = row.required('Entidade_Administradora',       str),
-            preferred_share_type          = row.optional('Classe_Acao_Preferencial',      PreferredShareType),
+            preferred_share_type          = row.optional('Classe_Acao_Preferencial',      datatypes.PreferredShareType),
             bdr_unit_composition          = row.optional('Composicao_BDR_Unit',           str),
             trading_symbol                = row.optional('Codigo_Negociacao',             str),
-            trading_started               = row.optional('Data_Inicio_Negociacao',        date_from_string),
-            trading_ended                 = row.optional('Data_Fim_Negociacao',           date_from_string),
-            market_segment                = row.optional('Segmento',                      MarketSegment),
-            listing_started               = row.optional('Data_Inicio_Listagem',          date_from_string),
-            listing_ended                 = row.optional('Data_Fim_Listagem',             date_from_string)
+            trading_started               = row.optional('Data_Inicio_Negociacao',        utils.date_from_string),
+            trading_ended                 = row.optional('Data_Fim_Negociacao',           utils.date_from_string),
+            market_segment                = row.optional('Segmento',                      datatypes.MarketSegment),
+            listing_started               = row.optional('Data_Inicio_Listagem',          utils.date_from_string),
+            listing_ended                 = row.optional('Data_Fim_Listagem',             utils.date_from_string)
         )
 
-    def read(self, document_id: int) -> typing.List[Security]:
+    def read(self, document_id: int) -> typing.List[datatypes.Security]:
         batch      = self.read_expected_batch(document_id)
         securities = [self.read_one(row) for row in batch.rows]
 
@@ -187,30 +171,30 @@ class AuditorReader(RegularDocumentBodyReader):
     def batch_id(self, row: CSVRow) -> int:
         return row.required('ID_Documento', int)
 
-    def read_one(self, row: CSVRow) -> Auditor:
+    def read_one(self, row: CSVRow) -> datatypes.Auditor:
         tax_id_str = row.required('CPF_CNPJ_Auditor', str)
 
         try:
-            tax_id = CNPJ(tax_id_str)
-        except InvalidTaxID:
+            tax_id = datatypes.CNPJ(tax_id_str)
+        except datatypes.InvalidTaxID:
             try:
-                tax_id = CPF(tax_id_str)
-            except InvalidTaxID as exc:
+                tax_id = datatypes.CPF(tax_id_str)
+            except datatypes.InvalidTaxID as exc:
                 raise exc from None
 
-        return Auditor(
+        return datatypes.Auditor(
             name                                = row.required('Auditor',                                 str),
             tax_id                              = tax_id,
             cvm_code                            = row.required('Codigo_CVM_Auditor',                      int),
-            activity_started                    = row.required('Data_Inicio_Atuacao_Auditor',             date_from_string),
-            activity_ended                      = row.optional('Data_Fim_Atuacao_Auditor',                date_from_string),
+            activity_started                    = row.required('Data_Inicio_Atuacao_Auditor',             utils.date_from_string),
+            activity_ended                      = row.optional('Data_Fim_Atuacao_Auditor',                utils.date_from_string),
             technical_manager_name              = row.required('Responsavel_Tecnico',                     str),
-            technical_manager_cpf               = row.required('CPF_Responsavel_Tecnico',                 CPF),
-            technical_manager_activity_started  = row.required('Data_Inicio_Atuacao_Responsavel_Tecnico', date_from_string),
-            technical_manager_activity_ended    = row.optional('Data_Fim_Atuacao_Responsavel_Tecnico',    date_from_string),
+            technical_manager_cpf               = row.required('CPF_Responsavel_Tecnico',                 datatypes.CPF),
+            technical_manager_activity_started  = row.required('Data_Inicio_Atuacao_Responsavel_Tecnico', utils.date_from_string),
+            technical_manager_activity_ended    = row.optional('Data_Fim_Atuacao_Responsavel_Tecnico',    utils.date_from_string),
         )
 
-    def read(self, document_id: int) -> typing.List[Auditor]:
+    def read(self, document_id: int) -> typing.List[datatypes.Auditor]:
         batch    = self.read_expected_batch(document_id)
         auditors = [self.read_one(row) for row in batch.rows]
 
@@ -222,33 +206,33 @@ class BookkeepingAgentReader(RegularDocumentBodyReader):
     def batch_id(self, row: CSVRow) -> int:
         return row.required('ID_Documento', int)
 
-    def read_one(self, row: CSVRow) -> BookkeepingAgent:
-        address = Address(
+    def read_one(self, row: CSVRow) -> datatypes.BookkeepingAgent:
+        address = datatypes.Address(
             street      = row.required('Logradouro',  str),
             complement  = row.required('Complemento', str),
             district    = row.required('Bairro',      str),
             city        = row.required('Cidade',      str),
             state       = row.required('Sigla_UF',    str),
-            country     = row.required('Pais',        Country),
+            country     = row.required('Pais',        datatypes.Country),
             postal_code = row.required('CEP',         int)
         )
 
-        contact = Contact(
+        contact = datatypes.Contact(
             phone = None, # TODO
             fax   = None, # TODO
             email = row.optional('Email', str)
         )
 
-        return BookkeepingAgent(
+        return datatypes.BookkeepingAgent(
             name             = row.required('Escriturador',      str),
-            cnpj             = row.required('CNPJ_Escriturador', CNPJ),
+            cnpj             = row.required('CNPJ_Escriturador', datatypes.CNPJ),
             address          = address,
             contact          = contact,
-            activity_started = row.optional('Data_Inicio_Atuacao', date_from_string),
-            activity_ended   = row.optional('Data_Fim_Atuacao',    date_from_string)
+            activity_started = row.optional('Data_Inicio_Atuacao', utils.date_from_string),
+            activity_ended   = row.optional('Data_Fim_Atuacao',    utils.date_from_string)
         )
 
-    def read(self, document_id: int) -> typing.List[BookkeepingAgent]:
+    def read(self, document_id: int) -> typing.List[datatypes.BookkeepingAgent]:
         batch              = self.read_expected_batch(document_id)
         bookkeeping_agents = [self.read_one(row) for row in batch.rows]
 
@@ -260,34 +244,34 @@ class InvestorRelationsDepartmentReader(RegularDocumentBodyReader):
     def batch_id(self, row: CSVRow) -> int:
         return row.required('ID_Documento', int)
 
-    def read_one(self, row: CSVRow) -> InvestorRelationsOfficer:
-        address = Address(
+    def read_one(self, row: CSVRow) -> datatypes.InvestorRelationsOfficer:
+        address = datatypes.Address(
             street      = row.required('Logradouro',  str),
             complement  = row.optional('Complemento', str),
             district    = row.required('Bairro',      str),
             city        = row.required('Cidade',      str),
             state       = row.required('Sigla_UF',    str), # TODO
-            country     = row.required('Pais',        Country),
+            country     = row.required('Pais',        datatypes.Country),
             postal_code = row.required('CEP',         int)
         )
 
-        contact = Contact(
+        contact = datatypes.Contact(
             phone = None, # TODO
             fax   = None, # TODO
             email = row.optional('Email', str)
         )
 
-        return InvestorRelationsOfficer(
-            type             = row.required('Tipo_Responsavel', InvestorRelationsOfficerType),
+        return datatypes.InvestorRelationsOfficer(
+            type             = row.required('Tipo_Responsavel', datatypes.InvestorRelationsOfficerType),
             name             = row.required('Responsavel',      str),
-            cpf              = row.required('CPF_Responsavel',  CPF),
+            cpf              = row.required('CPF_Responsavel',  datatypes.CPF),
             address          = address,
             contact          = contact,
-            activity_started = row.required('Data_Inicio_Atuacao', date_from_string),
-            activity_ended   = row.optional('Data_Fim_Atuacao',    date_from_string)
+            activity_started = row.required('Data_Inicio_Atuacao', utils.date_from_string),
+            activity_ended   = row.optional('Data_Fim_Atuacao',    utils.date_from_string)
         )
 
-    def read(self, document_id: int) -> typing.List[InvestorRelationsOfficer]:
+    def read(self, document_id: int) -> typing.List[datatypes.InvestorRelationsOfficer]:
         batch = self.read_expected_batch(document_id)
         ird   = [self.read_one(row) for row in batch]
 
@@ -299,38 +283,38 @@ class ShareholderDepartmentReader(RegularDocumentBodyReader):
     def batch_id(self, row: CSVRow) -> int:
         return row.required('ID_Documento', int)
 
-    def read_one(self, row: CSVRow) -> ShareholderDepartmentPerson:
-        address = Address(
+    def read_one(self, row: CSVRow) -> datatypes.ShareholderDepartmentPerson:
+        address = datatypes.Address(
             street      = row.required('Logradouro',  str),
             complement  = row.optional('Complemento', str),
             district    = row.required('Bairro',      str),
             city        = row.required('Cidade',      str),
             state       = row.required('Sigla_UF',    str), # TODO
-            country     = row.required('Pais',        Country),
+            country     = row.required('Pais',        datatypes.Country),
             postal_code = row.required('CEP',         int)
         )
 
-        contact = Contact(
+        contact = datatypes.Contact(
             phone = None, # TODO
             fax   = None, # TODO
             email = row.optional('Email', str)
         )
         
-        return ShareholderDepartmentPerson(
+        return datatypes.ShareholderDepartmentPerson(
             name             = row.required('Contato', str),
             address          = address,
             contact          = contact,
-            activity_started = row.optional('Data_Inicio_Contato', date_from_string),
-            activity_ended   = row.optional('Data_Fim_Contato',    date_from_string)
+            activity_started = row.optional('Data_Inicio_Contato', utils.date_from_string),
+            activity_ended   = row.optional('Data_Fim_Contato',    utils.date_from_string)
         )
     
-    def read(self, document_id: int) -> typing.List[ShareholderDepartmentPerson]:
+    def read(self, document_id: int) -> typing.List[datatypes.ShareholderDepartmentPerson]:
         batch             = self.read_expected_batch(document_id)
         sharedholder_dept = [self.read_one(row) for row in batch]
 
         return sharedholder_dept
 
-def reader(file: zipfile.ZipFile) -> typing.Generator[FCA, None, None]:
+def reader(file: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
     namelist = _MemberNameList(iter(file.namelist()))
 
     with contextlib.ExitStack() as stack:
@@ -390,7 +374,7 @@ def reader(file: zipfile.ZipFile) -> typing.Generator[FCA, None, None]:
             except UnexpectedBatch:
                 shareholder_dept = ()
 
-            yield FCA(
+            yield datatypes.FCA(
                 cnpj                          = head.cnpj,
                 reference_date                = head.reference_date,
                 version                       = head.version,
