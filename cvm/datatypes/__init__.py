@@ -19,6 +19,6 @@ from cvm.datatypes.trading_admission      import TradingAdmission
 from cvm.datatypes.industry               import Industry
 from cvm.datatypes.controlling_interest   import ControllingInterest
 from cvm.datatypes.communication_channel  import CommunicationChannel
-from cvm.datatypes.issuer                 import IssuerCompany, IssuerAddressType
+from cvm.datatypes.issuer                 import IssuerStatus, IssuerCompany, IssuerAddressType
 from cvm.datatypes.shareholder_department import ShareholderDepartmentPerson
 from cvm.datatypes.document               import DocumentType, RegularDocument, FCA, DFPITR
