@@ -40,7 +40,7 @@ class IndustrialBPA(Balance):
     long_term_assets: decimal.Decimal
     """Ativo Realizável a Longo Prazo"""
     
-    long_term_investiments: decimal.Decimal
+    long_term_investments: decimal.Decimal
     """Investimentos a Longo Prazo"""
     
     fixed_assets: decimal.Decimal
@@ -63,7 +63,7 @@ class IndustrialBPA(Balance):
         ('1.01.08', 'Outros Ativos Circulantes',      'other_current_assets'),
         ('1.02',    'Ativo Não Circulante',           'noncurrent_assets'),
         ('1.02.01', 'Ativo Realizável a Longo Prazo', 'long_term_assets'),
-        ('1.02.02', 'Investimentos',                  'long_term_investiments'),
+        ('1.02.02', 'Investimentos',                  'long_term_investments'),
         ('1.02.03', 'Imobilizado',                    'fixed_assets'),
         ('1.02.04', 'Intangível',                     'intangible_assets')
     )
@@ -81,7 +81,7 @@ class IndustrialBPA(Balance):
         'other_current_assets',
         'noncurrent_assets',
         'long_term_assets',
-        'long_term_investiments',
+        'long_term_investments',
         'fixed_assets',
         'intangible_assets'
     )
@@ -103,7 +103,7 @@ class IndustrialBPA(Balance):
 
         noncurrent_assets = (
             self.long_term_assets +
-            self.long_term_investiments +
+            self.long_term_investments +
             self.fixed_assets +
             self.intangible_assets
         )
