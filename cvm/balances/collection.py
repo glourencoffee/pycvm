@@ -8,7 +8,7 @@ from cvm.balances import (
     dre as m_dre
 )
 from cvm.datatypes  import document, statement
-from cvm.exceptions import NotImplementedException
+from cvm.exceptions import NotImplementedException, BalanceLayoutError
 
 class BalanceCollection:
     @classmethod
@@ -42,3 +42,12 @@ class IndustrialCollection:
             bpp = balance.make_balance(m_bpp.IndustrialBPP, collection.bpp.accounts, balance_type),
             dre = balance.make_balance(m_dre.IndustrialDRE, collection.dre.accounts, balance_type)
         )
+
+def make_balance_collection(collection: statement.StatementCollection, balance_type: statement.BalanceType) -> BalanceCollection:
+    for cls in (IndustrialCollection,):
+        try:
+            industrial = cls.from_statements(statements, balance_type)
+        except BalanceLayoutError:
+            continue
+    
+    raise BalanceLayoutError('statement collection doesnt match any balance collection')
