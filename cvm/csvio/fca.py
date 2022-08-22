@@ -332,53 +332,72 @@ def reader(file: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]
         shareholder_dept_reader  = ShareholderDepartmentReader      (open_on_stack(namelist.shareholder_department_filename))
 
         while True:
-            head = head_reader.read()
+            try:
+                head = head_reader.read()
+            except StopIteration:
+                break
 
             try:
                 addresses = address_reader.read(head.id)
-            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+            except (UnexpectedBatch, StopIteration):
+                addresses = ()
+            except exceptions.BadDocument as exc:
                 print('Error while reading addresses:', exc)
                 addresses = ()
 
             try:
                 trading_admissions = trading_admission_reader.read(head.id)
-            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+            except (UnexpectedBatch, StopIteration):
+                trading_admissions = ()
+            except exceptions.BadDocument as exc:
                 print('Error while reading trading admissions:', exc)
                 trading_admissions = ()
 
             try:
                 issuer_company = issuer_company_reader.read(head.id, trading_admissions, addresses)
-            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+            except (UnexpectedBatch, StopIteration):
+                issuer_company = None
+            except exceptions.BadDocument as exc:
                 print('Error while reading issuer company:', exc)
                 issuer_company = None
 
             try:
                 securities = security_reader.read(head.id)
-            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+            except (UnexpectedBatch, StopIteration):
+                securities = ()
+            except exceptions.BadDocument as exc:
                 print('Error while reading securities:', exc)
                 securities = ()
 
             try:
                 auditors = auditor_reader.read(head.id)
-            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+            except (UnexpectedBatch, StopIteration):
+                auditors = ()
+            except exceptions.BadDocument as exc:
                 print('Error while reading auditors:', exc)
                 auditors = ()
 
             try:
                 bookkeeping_agents = bookkeeping_agent_reader.read(head.id)
-            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+            except (UnexpectedBatch, StopIteration):
+                bookkeeping_agents = ()
+            except exceptions.BadDocument as exc:
                 print('Error while reading bookkeeping agents:', exc)
                 bookkeeping_agents = ()
             
             try:
                 ird = ird_reader.read(head.id)
-            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+            except (UnexpectedBatch, StopIteration):
+                ird = ()
+            except exceptions.BadDocument as exc:
                 print('Error while reading IRD:', exc)
                 ird = ()
 
             try:
                 shareholder_dept = shareholder_dept_reader.read(head.id)
-            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+            except (UnexpectedBatch, StopIteration):
+                shareholder_dept = ()
+            except exceptions.BadDocument as exc:
                 print('Error while reading shareholder department:', exc)
                 shareholder_dept = ()
 
