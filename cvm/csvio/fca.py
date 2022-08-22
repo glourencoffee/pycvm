@@ -2,7 +2,7 @@ import contextlib
 import io
 import typing
 import zipfile
-from cvm                import datatypes, utils
+from cvm                import datatypes, exceptions, utils
 from cvm.csvio.document import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
 from cvm.csvio.row      import CSVRow
 
@@ -89,7 +89,7 @@ class TradingAdmissionReader(RegularDocumentBodyReader):
         for row in batch:
             trading_admissions.append(datatypes.TradingAdmission(
                 foreign_country = row.required('Pais',                     datatypes.Country),
-                admission_date  = row.required('Data_Admissao_Negociacao', utils.utils.date_from_string)
+                admission_date  = row.required('Data_Admissao_Negociacao', utils.date_from_string)
             ))
 
         return trading_admissions
@@ -336,42 +336,50 @@ def reader(file: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]
 
             try:
                 addresses = address_reader.read(head.id)
-            except UnexpectedBatch:
+            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+                print('Error while reading addresses:', exc)
                 addresses = ()
 
             try:
                 trading_admissions = trading_admission_reader.read(head.id)
-            except UnexpectedBatch:
+            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+                print('Error while reading trading admissions:', exc)
                 trading_admissions = ()
 
             try:
                 issuer_company = issuer_company_reader.read(head.id, trading_admissions, addresses)
-            except UnexpectedBatch:
+            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+                print('Error while reading issuer company:', exc)
                 issuer_company = None
 
             try:
                 securities = security_reader.read(head.id)
-            except UnexpectedBatch:
+            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+                print('Error while reading securities:', exc)
                 securities = ()
 
             try:
                 auditors = auditor_reader.read(head.id)
-            except UnexpectedBatch:
+            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+                print('Error while reading auditors:', exc)
                 auditors = ()
 
             try:
                 bookkeeping_agents = bookkeeping_agent_reader.read(head.id)
-            except UnexpectedBatch:
+            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+                print('Error while reading bookkeeping agents:', exc)
                 bookkeeping_agents = ()
             
             try:
                 ird = ird_reader.read(head.id)
-            except UnexpectedBatch:
+            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+                print('Error while reading IRD:', exc)
                 ird = ()
 
             try:
                 shareholder_dept = shareholder_dept_reader.read(head.id)
-            except UnexpectedBatch:
+            except (UnexpectedBatch, exceptions.BadDocument) as exc:
+                print('Error while reading shareholder department:', exc)
                 shareholder_dept = ()
 
             yield datatypes.FCA(

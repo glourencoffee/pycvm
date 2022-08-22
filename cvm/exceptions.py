@@ -13,7 +13,7 @@ class ZipMemberError(Error):
     """Raised if a ZIP file contains an unknown member file."""
 
     def __init__(self, member_name: str):
-        super.__init__(f"unexpected ZIP member file '{member_name}'")
+        super().__init__(f"unexpected ZIP member file '{member_name}'")
 
 class BadDocument(Error):
     """Raised if a document fails to be read from a file."""
@@ -30,7 +30,7 @@ class InvalidValueError(BadDocument):
 
     pass
 
-class BalanceLayoutError(Error):
+class AccountLayoutError(Error):
     """Raised if a balance fails to ..."""
 
     pass

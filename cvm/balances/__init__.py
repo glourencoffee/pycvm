@@ -1,5 +1,6 @@
-from cvm.balances.balance    import make_balance, AccountParser, Balance
-from cvm.balances.bpa        import IndustrialBPA
-from cvm.balances.bpp        import IndustrialBPP
-from cvm.balances.dre        import IndustrialDRE
-from cvm.balances.collection import BalanceCollection, IndustrialCollection, make_balance_collection
+from cvm.balances.account_layout   import AccountLayout, AccountLayoutValidator
+from cvm.balances.industrial.bpa   import IndustrialBPAValidator
+from cvm.balances.industrial.bpp   import IndustrialBPPValidator
+from cvm.balances.industrial.dre   import IndustrialDREValidator
+from cvm.balances.balance_sheet    import BalanceSheet
+from cvm.balances.income_statement import IncomeStatement
