@@ -6,11 +6,14 @@ from cvm.balances.industrial.bpa import IndustrialBPAValidator
 from cvm.balances.industrial.bpp import IndustrialBPPValidator
 from cvm.balances.financial.bpa  import FinancialBPAValidator
 from cvm.balances.financial.bpp  import FinancialBPPValidator
+from cvm.balances.insurance.bpa  import InsuranceBPAValidator
+from cvm.balances.insurance.bpp  import InsuranceBPPValidator
 from cvm                         import datatypes, exceptions
 
 __validator_pairs__ = (
     (IndustrialBPAValidator, IndustrialBPPValidator),
     (FinancialBPAValidator,  FinancialBPPValidator),
+    (InsuranceBPAValidator, InsuranceBPPValidator)
 )
 
 @dataclasses.dataclass(init=True)
