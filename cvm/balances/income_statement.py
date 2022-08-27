@@ -1,4 +1,6 @@
+from __future__ import annotations
 import dataclasses
+import datetime
 import typing
 from cvm                         import datatypes, exceptions
 from cvm.balances.industrial.dre import IndustrialDREValidator
@@ -87,18 +89,46 @@ class IncomeStatement:
     )
 
     @classmethod
-    def from_document(cls, document: datatypes.DFPITR, balance_type: datatypes.BalanceType = datatypes.BalanceType.CONSOLIDATED, **kwargs):
-        stmts = document[balance_type][datatypes.FiscalYearOrder.LAST]
-
+    def from_accounts(cls,
+                      dre_accounts: datatypes.AccountTuple,
+                      balance_type: datatypes.BalanceType,
+                      reference_date: datetime.date
+    ) -> IncomeStatement:
         error_strings = []
 
         for dre_validator in __validators__:
             try:
-                attrs = dre_validator().validate(stmts.dre.accounts.normalized(), balance_type, document.reference_date)
+                attrs = dre_validator().validate(dre_accounts.normalized(), balance_type, reference_date)
             except exceptions.AccountLayoutError as exc:
                 error_strings.append(f'{dre_validator.__name__}: {exc}')
                 continue
             else:
-                return cls(**attrs, **kwargs)
+                return cls(**attrs)
         
         raise exceptions.AccountLayoutError(f'invalid DRE: {error_strings}')
+
+    @classmethod
+    def from_collection(cls,
+                        collection: datatypes.StatementCollection,
+                        balance_type: datatypes.BalanceType,
+                        reference_date: datetime.date
+    ) -> IncomeStatement:
+        return cls.from_accounts(
+            collection.dre.accounts,
+            balance_type,
+            reference_date
+        )
+
+    @classmethod
+    def from_document(cls,
+                      document: datatypes.DFPITR,
+                      balance_type: datatypes.BalanceType = datatypes.BalanceType.CONSOLIDATED
+    ) -> IncomeStatement:
+        mapping    = document[balance_type]
+        collection = mapping[datatypes.FiscalYearOrder.LAST]
+
+        return cls.from_collection(
+            collection,
+            balance_type,
+            document.reference_date
+        )

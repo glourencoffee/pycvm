@@ -1,5 +1,6 @@
 from __future__ import annotations
 import dataclasses
+import datetime
 import functools
 import typing
 from cvm.balances.industrial.bpa import IndustrialBPAValidator
@@ -13,7 +14,7 @@ from cvm                         import datatypes, exceptions
 __validator_pairs__ = (
     (IndustrialBPAValidator, IndustrialBPPValidator),
     (FinancialBPAValidator,  FinancialBPPValidator),
-    (InsuranceBPAValidator, InsuranceBPPValidator)
+    (InsuranceBPAValidator,  InsuranceBPPValidator)
 )
 
 @dataclasses.dataclass(init=True)
@@ -53,25 +54,56 @@ class BalanceSheet:
             return None
 
     @classmethod
-    def from_document(cls, document: datatypes.DFPITR, balance_type: datatypes.BalanceType = datatypes.BalanceType.CONSOLIDATED, **kwargs):
-        stmts     = document[balance_type][datatypes.FiscalYearOrder.LAST]
+    def from_accounts(cls,
+                      bpa_accounts: datatypes.AccountTuple,
+                      bpp_accounts: datatypes.AccountTuple,
+                      balance_type: datatypes.BalanceType,
+                      reference_date: datetime.date
+    ) -> BalanceSheet:
         bpa_attrs = {}
         bpp_attrs = {}
         error_str = []
 
         for bpa_validator, bpp_validator in __validator_pairs__:
             try:
-                bpa_attrs = bpa_validator().validate(stmts.bpa.accounts.normalized(), balance_type, document.reference_date)
+                bpa_attrs = bpa_validator().validate(bpa_accounts.normalized(), balance_type, reference_date)
             except exceptions.AccountLayoutError as exc:
                 error_str.append(f'{bpa_validator.__name__}: {exc}')
                 continue
             
             try:
-                bpp_attrs = bpp_validator().validate(stmts.bpp.accounts.normalized(), balance_type, document.reference_date)
+                bpp_attrs = bpp_validator().validate(bpp_accounts.normalized(), balance_type, reference_date)
             except  exceptions.AccountLayoutError as exc:
                 error_str.append(f'{bpp_validator.__name__}: {exc}')
                 continue
             else:
-                return cls(**bpa_attrs, **bpp_attrs, **kwargs)
+                return cls(**bpa_attrs, **bpp_attrs)
         
         raise exceptions.AccountLayoutError(f'invalid BPA or BPP: {error_str}')
+
+    @classmethod
+    def from_collection(cls,
+                        collection: datatypes.StatementCollection,
+                        balance_type: datatypes.BalanceType,
+                        reference_date: datetime.date
+    ) -> BalanceSheet:
+        return cls.from_accounts(
+            collection.bpa.accounts,
+            collection.bpp.accounts,
+            balance_type,
+            reference_date
+        )
+
+    @classmethod
+    def from_document(cls,
+                      document: datatypes.DFPITR,
+                      balance_type: datatypes.BalanceType = datatypes.BalanceType.CONSOLIDATED
+    ) -> BalanceSheet:
+        mapping    = document[balance_type]
+        collection = mapping[datatypes.FiscalYearOrder.LAST]
+
+        return cls.from_collection(
+            collection,
+            balance_type,
+            document.reference_date
+        )
