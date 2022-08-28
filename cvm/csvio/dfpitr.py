@@ -28,31 +28,36 @@ class _MemberNameList:
         self.con_filenames = {}
         self.ind_filenames = {}
 
+        # <file-name>   ::= <prefix> <middle-name> <suffix>
+        # <prefix>      ::= ("dfp" | "itr") "_cia_aberta" ["_"]
+        # <middle-name> ::= see below
+        # <suffix>      ::= "_" <4-digit-year> ".csv"
+        prefix_length = len('XXX_cia_aberta')
         suffix_length = len('_XXXX.csv')
 
         for name in namelist:
             try:
-                left_name = name[:-suffix_length]
+                middle_name = name[prefix_length:-suffix_length]
             except IndexError:
                 raise ZipMemberError(name)
 
-            if   left_name == 'dfp_cia_aberta':            self.head_filename                       = name
-            elif left_name == 'dfp_cia_aberta_BPA_con':    self.con_filenames[StatementType.BPA]    = name
-            elif left_name == 'dfp_cia_aberta_BPA_ind':    self.ind_filenames[StatementType.BPA]    = name
-            elif left_name == 'dfp_cia_aberta_BPP_con':    self.con_filenames[StatementType.BPP]    = name
-            elif left_name == 'dfp_cia_aberta_BPP_ind':    self.ind_filenames[StatementType.BPP]    = name
-            elif left_name == 'dfp_cia_aberta_DFC_MD_con': self.con_filenames[StatementType.DFC_MD] = name
-            elif left_name == 'dfp_cia_aberta_DFC_MD_ind': self.ind_filenames[StatementType.DFC_MD] = name
-            elif left_name == 'dfp_cia_aberta_DFC_MI_con': self.con_filenames[StatementType.DFC_MI] = name
-            elif left_name == 'dfp_cia_aberta_DFC_MI_ind': self.ind_filenames[StatementType.DFC_MI] = name
-            elif left_name == 'dfp_cia_aberta_DMPL_con':   self.con_filenames[StatementType.DMPL]   = name
-            elif left_name == 'dfp_cia_aberta_DMPL_ind':   self.ind_filenames[StatementType.DMPL]   = name
-            elif left_name == 'dfp_cia_aberta_DRA_con':    self.con_filenames[StatementType.DRA]    = name
-            elif left_name == 'dfp_cia_aberta_DRA_ind':    self.ind_filenames[StatementType.DRA]    = name
-            elif left_name == 'dfp_cia_aberta_DRE_con':    self.con_filenames[StatementType.DRE]    = name
-            elif left_name == 'dfp_cia_aberta_DRE_ind':    self.ind_filenames[StatementType.DRE]    = name
-            elif left_name == 'dfp_cia_aberta_DVA_con':    self.con_filenames[StatementType.DVA]    = name
-            elif left_name == 'dfp_cia_aberta_DVA_ind':    self.ind_filenames[StatementType.DVA]    = name
+            if   middle_name == '':            self.head_filename                       = name
+            elif middle_name == '_BPA_con':    self.con_filenames[StatementType.BPA]    = name
+            elif middle_name == '_BPA_ind':    self.ind_filenames[StatementType.BPA]    = name
+            elif middle_name == '_BPP_con':    self.con_filenames[StatementType.BPP]    = name
+            elif middle_name == '_BPP_ind':    self.ind_filenames[StatementType.BPP]    = name
+            elif middle_name == '_DFC_MD_con': self.con_filenames[StatementType.DFC_MD] = name
+            elif middle_name == '_DFC_MD_ind': self.ind_filenames[StatementType.DFC_MD] = name
+            elif middle_name == '_DFC_MI_con': self.con_filenames[StatementType.DFC_MI] = name
+            elif middle_name == '_DFC_MI_ind': self.ind_filenames[StatementType.DFC_MI] = name
+            elif middle_name == '_DMPL_con':   self.con_filenames[StatementType.DMPL]   = name
+            elif middle_name == '_DMPL_ind':   self.ind_filenames[StatementType.DMPL]   = name
+            elif middle_name == '_DRA_con':    self.con_filenames[StatementType.DRA]    = name
+            elif middle_name == '_DRA_ind':    self.ind_filenames[StatementType.DRA]    = name
+            elif middle_name == '_DRE_con':    self.con_filenames[StatementType.DRE]    = name
+            elif middle_name == '_DRE_ind':    self.ind_filenames[StatementType.DRE]    = name
+            elif middle_name == '_DVA_con':    self.con_filenames[StatementType.DVA]    = name
+            elif middle_name == '_DVA_ind':    self.ind_filenames[StatementType.DVA]    = name
             else:
                 raise ZipMemberError(name)
 

@@ -4,9 +4,9 @@ import typing
 from cvm import datatypes
 
 class DocumentType(datatypes.DescriptiveIntEnum):
-    FCA       = (0, 'Formulário Cadastral')
-    DFP       = (1, 'Demonstrações Fiscais Padronizadas')
-    ITR       = (2, 'Informe Trimestral')
+    FCA = (0, 'Formulário Cadastral')
+    DFP = (1, 'Demonstrações Fiscais Padronizadas')
+    ITR = (2, 'Informe Trimestral')
 
 @dataclasses.dataclass(init=True, frozen=True)
 class RegularDocument:

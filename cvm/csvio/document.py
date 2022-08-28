@@ -1,6 +1,6 @@
 import csv
 import typing
-from cvm             import datatypes, utils
+from cvm             import datatypes, utils, exceptions
 from cvm.csvio.row   import CSVRow
 from cvm.csvio.batch import CSVBatch, CSVBatchReader
 
@@ -21,8 +21,7 @@ class RegularDocumentHeadReader:
                 break
 
         if doctype is None:
-            # TODO
-            ...
+            raise exceptions.BadDocument(f"unknown document type '{strtype}'")
 
         return datatypes.RegularDocument(
             cnpj           = row.required('CNPJ_CIA',  datatypes.CNPJ),
