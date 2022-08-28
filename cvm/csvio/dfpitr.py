@@ -225,29 +225,6 @@ class DMPLReader(StatementReader):
 
         return types.MappingProxyType(docs)
 
-def _make_statement_collection(statements: typing.Dict[StatementType, typing.Any]):
-    try:
-        bpa  = statements[StatementType.BPA]
-        bpp  = statements[StatementType.BPP]
-        dre  = statements[StatementType.DRE]
-        dra  = statements[StatementType.DRA]
-        dmpl = statements[StatementType.DMPL]
-        dva  = statements[StatementType.DVA]
-    except KeyError as exc:
-        stmt_type: StatementType = exc.args[0]
-
-        raise BadDocument(f'missing {stmt_type.name}') from None
-
-    if StatementType.DFC_MD in statements:
-        dfc = statements[StatementType.DFC_MD]
-    else:
-        try:
-            dfc = statements[StatementType.DFC_MI]
-        except KeyError:
-            raise BadDocument('document has neither DFC-MD nor DFC-MI') from None
-
-    return StatementCollection(bpa, bpp, dre, dra, dmpl, dfc, dva)
-
 class BalanceFlag(enum.IntFlag):
     NONE         = 0
     CONSOLIDATED = 1
@@ -356,6 +333,9 @@ def reader(file: zipfile.ZipFile, flag: BalanceFlag = BalanceFlag.CONSOLIDATED|B
                     except (UnexpectedBatch, StopIteration):
                         continue
 
+                    if stmt_type in (StatementType.DFC_MD, StatementType.DFC_MI):
+                        stmt_type = StatementType.DFC
+
                     for fy_order, stmt in fy_stmts.items():
                         statements[fy_order][stmt_type] = stmt
                 
@@ -368,7 +348,10 @@ def reader(file: zipfile.ZipFile, flag: BalanceFlag = BalanceFlag.CONSOLIDATED|B
                 collections = {}
 
                 for fy_order, statements in fy_statements.items():
-                    collections[fy_order] = _make_statement_collection(statements)
+                    try:
+                        collections[fy_order] = StatementCollection(statements)
+                    except KeyError as exc:
+                        raise BadDocument(str(exc)) from None
 
                 return collections
 
