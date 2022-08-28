@@ -9,8 +9,8 @@ abertas, embora ela possa ser utilizada por conta própria para outros fins.
 
 CVM é a sigla para Comissão de Valores Mobiliários, que é o orgão governamental que
 define os regulamentos para as companhias de capital aberto. Além de regular e
-supervisionar tais companhias, a CVM também também disponibiliza os seus dados
-para acesso público.
+supervisionar tais companhias, a CVM também disponibiliza os seus dados para
+acesso público.
 
 # Documentos da CVM
 
@@ -38,5 +38,12 @@ for dfpitr in cvm.csvio.dfpitr_reader('caminho/para/arquivo/dfp_ou_itr.zip'):
 ```
 
 Note que a biblioteca não foi testada por completo e sua API ainda está instável.
+
+Exemplos mais elaborados de uso estão no diretório `samples`:
+
+```sh
+> python -m samples.dfp.print_accounts 'caminho/para/arquivo/dfp_ou_itr.zip'
+> python -m samples.dfp.print_balances 'caminho/para/arquivo/dfp_ou_itr.zip'
+```
 
   [cvm-portal-de-dados-cia]: <https://dados.cvm.gov.br/dataset/?groups=companhias>
