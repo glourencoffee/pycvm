@@ -4,6 +4,7 @@ import datetime
 import decimal
 import enum
 import io
+import os
 import typing
 import types
 import zipfile
@@ -235,15 +236,7 @@ class BalanceFlag(enum.IntFlag):
     CONSOLIDATED = 1
     INDIVIDUAL   = 2
 
-def reader(file: zipfile.ZipFile, flag: BalanceFlag = BalanceFlag.CONSOLIDATED|BalanceFlag.INDIVIDUAL) -> typing.Generator[DFPITR, None, None]:
-    """Reads DFP `Documents` from a ZIP file.
-    
-    >>> with zipfile.ZipFile('path/to/dfp.zip') as file:
-    >>>     reader = DFPITRReader(file)
-    >>>     for doc in reader:
-    ...         print(doc)
-    """
-
+def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DFPITR, None, None]:
     ################################################################################
     # The implementation below tries to read all the CSV files contained in the DFP
     # ZIP file simultaneously, taking advantage of the fact that data in these files
@@ -396,3 +389,12 @@ def reader(file: zipfile.ZipFile, flag: BalanceFlag = BalanceFlag.CONSOLIDATED|B
                 individual     = individual,
                 consolidated   = consolidated
             )
+
+def reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str],
+           flag: BalanceFlag = BalanceFlag.CONSOLIDATED|BalanceFlag.INDIVIDUAL
+) -> typing.Generator[DFPITR, None, None]:
+
+    if not isinstance(file, zipfile.ZipFile):
+        file = zipfile.ZipFile(file)
+
+    return _zip_reader(file, flag)

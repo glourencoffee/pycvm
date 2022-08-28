@@ -1,5 +1,6 @@
 import contextlib
 import io
+import os
 import typing
 import zipfile
 from cvm                import datatypes, exceptions, utils
@@ -314,7 +315,7 @@ class ShareholderDepartmentReader(RegularDocumentBodyReader):
 
         return sharedholder_dept
 
-def reader(file: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
+def _zip_reader(file: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
     namelist = _MemberNameList(iter(file.namelist()))
 
     with contextlib.ExitStack() as stack:
@@ -418,3 +419,9 @@ def reader(file: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]
                 investor_relations_department = tuple(ird),
                 shareholder_department        = tuple(shareholder_dept)
             )
+
+def reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str]) -> typing.Generator[datatypes.FCA, None, None]:
+    if not isinstance(file, zipfile.ZipFile):
+        file = zipfile.ZipFile(file)
+
+    return _zip_reader(file)
