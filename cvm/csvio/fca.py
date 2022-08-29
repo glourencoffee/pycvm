@@ -114,7 +114,7 @@ class IssuerCompanyReader(RegularDocumentBodyReader):
             corporate_name_last_changed       = row.optional('Data_Nome_Empresarial',             utils.date_from_string),
             previous_corporate_name           = row.optional('Nome_Empresarial_Anterior',         str, allow_empty_string=False),
             establishment_date                = row.required('Data_Constituicao',                 utils.date_from_string),
-            cnpj                              = row.required('CNPJ_Companhia',                    datatypes.CNPJ),
+            cnpj                              = row.required('CNPJ_Companhia',                    datatypes.CNPJ.from_zfilled_with_separators),
             cvm_code                          = row.required('Codigo_CVM',                        int),
             cvm_registration_date             = row.required('Data_Registro_CVM',                 utils.date_from_string),
             cvm_registration_category         = row.required('Categoria_Registro_CVM',            datatypes.RegistrationCategory),
@@ -176,10 +176,10 @@ class AuditorReader(RegularDocumentBodyReader):
         tax_id_str = row.required('CPF_CNPJ_Auditor', str)
 
         try:
-            tax_id = datatypes.CNPJ(tax_id_str)
+            tax_id = datatypes.CNPJ.from_zfilled_with_separators(tax_id_str)
         except datatypes.InvalidTaxID:
             try:
-                tax_id = datatypes.CPF(tax_id_str)
+                tax_id = datatypes.CPF.from_zfilled_with_separators(tax_id_str)
             except datatypes.InvalidTaxID as exc:
                 raise exc from None
 
@@ -190,7 +190,7 @@ class AuditorReader(RegularDocumentBodyReader):
             activity_started                    = row.required('Data_Inicio_Atuacao_Auditor',             utils.date_from_string),
             activity_ended                      = row.optional('Data_Fim_Atuacao_Auditor',                utils.date_from_string),
             technical_manager_name              = row.required('Responsavel_Tecnico',                     str),
-            technical_manager_cpf               = row.required('CPF_Responsavel_Tecnico',                 datatypes.CPF),
+            technical_manager_cpf               = row.required('CPF_Responsavel_Tecnico',                 datatypes.CPF.from_zfilled_with_separators),
             technical_manager_activity_started  = row.required('Data_Inicio_Atuacao_Responsavel_Tecnico', utils.date_from_string),
             technical_manager_activity_ended    = row.optional('Data_Fim_Atuacao_Responsavel_Tecnico',    utils.date_from_string),
         )
@@ -226,7 +226,7 @@ class BookkeepingAgentReader(RegularDocumentBodyReader):
 
         return datatypes.BookkeepingAgent(
             name             = row.required('Escriturador',      str),
-            cnpj             = row.required('CNPJ_Escriturador', datatypes.CNPJ),
+            cnpj             = row.required('CNPJ_Escriturador', datatypes.CNPJ.from_zfilled_with_separators),
             address          = address,
             contact          = contact,
             activity_started = row.optional('Data_Inicio_Atuacao', utils.date_from_string),
@@ -265,7 +265,7 @@ class InvestorRelationsDepartmentReader(RegularDocumentBodyReader):
         return datatypes.InvestorRelationsOfficer(
             type             = row.required('Tipo_Responsavel', datatypes.InvestorRelationsOfficerType),
             name             = row.required('Responsavel',      str),
-            cpf              = row.required('CPF_Responsavel',  datatypes.CPF),
+            cpf              = row.required('CPF_Responsavel',  datatypes.CPF.from_zfilled_with_separators),
             address          = address,
             contact          = contact,
             activity_started = row.required('Data_Inicio_Atuacao', utils.date_from_string),

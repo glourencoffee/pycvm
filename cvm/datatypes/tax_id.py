@@ -1,4 +1,4 @@
-import typing
+from __future__ import annotations
 
 class InvalidTaxID(ValueError):
     def __init__(self, cls, value, err_desc):
@@ -6,18 +6,45 @@ class InvalidTaxID(ValueError):
 
         super().__init__(err_msg)
 
-class TaxID(int):
-    __lengths__    = ()
-    __separators__ = ''
+class TaxID:
+    """
+    There are three ways of representing a tax id:
+    1. plain digits (e.g. "191");
+    2. zero-filled digits (e.g. "00000000000191");
+    3. zero-filled digits with separators (e.g. "00.000.000/0001-91").
+
+    Subclasses of this class only accept representations 1 and 2 upon
+    construction:
+
+    >>> CNPJ('191')
+    '00000000000191'
+    >>> CNPJ('00000000000191')
+    '00000000000191'
+
+    Passing a string with non-digit characters raises `InvalidTaxID`.
+    To construct a `TaxID` from representation 3, call the class method
+    `from_zfilled_with_separators()`:
+
+    >>> cnpj = CNPJ.from_zfilled_with_separators('00.000.000/0001-91')
+    >>> str(cnpj)
+    '00000000000191'
+    >>> cnpj.digits()
+    '191'
+    """
+
+    _lengths    = ()
+    _separators = ''
+
+    __slots__ = '_digits'
 
     @classmethod
     def digit_count(cls) -> int:
-        return sum(cls.__lengths__)
+        return sum(cls._lengths)
 
     @classmethod
-    def from_string(cls, value: str) -> str:
-        lengths    = cls.__lengths__
-        separators = cls.__separators__ + '\0'
+    def from_zfilled_with_separators(cls, value: str) -> TaxID:
+        lengths    = cls._lengths
+        separators = cls._separators + '\0'
         index      = 0
         digits     = ''
 
@@ -46,49 +73,75 @@ class TaxID(int):
                 raise InvalidTaxID(cls, value, f"expected character '{sep}' at index {index} (got: '{c}')")
             
             index += 1 # skip separator
+        
+        return cls(digits)
 
-        return digits
+    def __init__(self, digits: str) -> str:
+        digits = digits.lstrip('0')
 
-    def __new__(cls, value: typing.Union[str, int]):
-        if isinstance(value, str):
-            if not value.isdigit():
-                value = cls.from_string(value)
-                #value = ''.join(c for c in value if c.isdigit())
+        if len(digits) == 0:
+            raise InvalidTaxID(self.__class__, digits, 'tax id digits must not be empty or zero')
 
-        return super(TaxID, cls).__new__(cls, value)
+        for c in digits:
+            if not c.isdigit():
+                raise InvalidTaxID(
+                    self.__class__,
+                    digits,
+                    f"tax id must contain only digits (got '{c}')"
+                )
+
+        if len(digits) > self.digit_count():
+            raise InvalidTaxID(
+                self.__class__,
+                digits,
+                f"tax id is too large (max digits: {self.digit_count()}, got: {len(digits)})"
+            )
+
+        self._digits = digits
+
+    def digits(self) -> str:
+        return self._digits
+
+    def to_string(self, use_separator: bool = True) -> str:
+        # Make tax id zero-padded (e.g. '00000000123' (CPF) or '00000000000123' (CNPJ))
+        zero_padded_digits = self._digits.zfill(self.digit_count())
+
+        if use_separator:
+            # Format zero-padded value (e.g. '123.456.789-00' (CPF) or '12.345.678/9999-00' (CNPJ))
+            lengths    = self._lengths
+            separators = self._separators + '\0'
+            start      = 0
+            new_digits = ''
+
+            for length, sep in zip(lengths, separators):
+                stop        = start + length
+                part        = zero_padded_digits[start:stop]
+                new_digits += part + sep
+                start       = stop
+
+            zero_padded_digits = new_digits[:-1]
+
+        return zero_padded_digits
 
     def __str__(self) -> str:
-        # Make formatter string (e.g. '{:011}' or '{:013}')
-        formatter = f'{{:0{self.digit_count()}}}'
+        return self.to_string(use_separator=True)
 
-        # Make tax id zero-padded (e.g. '00000000123' (CPF) or '00000000000123' (CNPJ))
-        tax_id             = int(self)
-        zero_padded_tax_id = formatter.format(tax_id)
+    # def __eq__(self, other: object) -> bool:
+    #     return self.digits() == other.digits()
 
-        # Format zero-padded value (e.g. '123.456.789-00' (CPF) or '12.345.678.9999-00' (CNPJ))
-        lengths    = self.__lengths__
-        separators = self.__separators__ + '\0'
-        start      = 0
-        tax_id     = ''
-
-        for length, sep in zip(lengths, separators):
-            stop    = start + length
-            part    = zero_padded_tax_id[start:stop]
-            tax_id += part + sep
-            start   = stop
-
-        return tax_id[:-1]
+    # def __ne__(self, other: object) -> bool:
+    #     return not self.__eq__(other)
 
 class CNPJ(TaxID):
-    __lengths__    = (2, 3, 3, 4, 2)
-    __separators__ = '../-'
+    _lengths    = (2, 3, 3, 4, 2)
+    _separators = '../-'
 
     def __repr__(self) -> str:
-        return f'<CNPJ: { self.__str__() }>'
+        return f'<CNPJ: {self.to_string(use_separator=True)}>'
 
 class CPF(TaxID):
-    __lengths__    = (3, 3, 3, 2)
-    __separators__ = '..-'
+    _lengths    = (3, 3, 3, 2)
+    _separators = '..-'
 
     def __repr__(self) -> str:
-        return f'<CPF: { self.__str__() }>'
+        return f'<CPF: {self.to_string(use_separator=True)}>'

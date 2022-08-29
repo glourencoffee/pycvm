@@ -24,7 +24,7 @@ class RegularDocumentHeadReader:
             raise exceptions.BadDocument(f"unknown document type '{strtype}'")
 
         return datatypes.RegularDocument(
-            cnpj           = row.required('CNPJ_CIA',  datatypes.CNPJ),
+            cnpj           = row.required('CNPJ_CIA',  datatypes.CNPJ.from_zfilled_with_separators),
             reference_date = row.required('DT_REFER',  utils.date_from_string),
             version        = row.required('VERSAO',    int),
             company_name   = row.required('DENOM_CIA', str),

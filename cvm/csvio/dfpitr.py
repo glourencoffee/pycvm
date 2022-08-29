@@ -77,13 +77,13 @@ def _row_batch_id(cnpj: CNPJ, reference_date: datetime.date, version: int) -> in
     from the three repeated fields and use it as a row batch id.
     """
 
-    hash_str = str(int(cnpj)) + str(reference_date) + str(version)
+    hash_str = cnpj.to_string(use_separator=False) + str(reference_date) + str(version)
 
     return zlib.crc32(hash_str.encode('utf-8'))
 
 class StatementReader(RegularDocumentBodyReader):
     def batch_id(self, row: CSVRow) -> int:
-        cnpj           = row.required('CNPJ_CIA', CNPJ)
+        cnpj           = row.required('CNPJ_CIA', CNPJ.from_zfilled_with_separators)
         reference_date = row.required('DT_REFER', date_from_string)
         version        = row.required('VERSAO',   int)
 
