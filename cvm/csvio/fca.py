@@ -115,7 +115,7 @@ class IssuerCompanyReader(RegularDocumentBodyReader):
             previous_corporate_name           = row.optional('Nome_Empresarial_Anterior',         str, allow_empty_string=False),
             establishment_date                = row.required('Data_Constituicao',                 utils.date_from_string),
             cnpj                              = row.required('CNPJ_Companhia',                    datatypes.CNPJ.from_zfilled_with_separators),
-            cvm_code                          = row.required('Codigo_CVM',                        int),
+            cvm_code                          = row.required('Codigo_CVM',                        utils.lzstrip),
             cvm_registration_date             = row.required('Data_Registro_CVM',                 utils.date_from_string),
             cvm_registration_category         = row.required('Categoria_Registro_CVM',            datatypes.RegistrationCategory),
             cvm_registration_category_started = row.required('Data_Categoria_Registro_CVM',       utils.date_from_string),
@@ -186,7 +186,7 @@ class AuditorReader(RegularDocumentBodyReader):
         return datatypes.Auditor(
             name                                = row.required('Auditor',                                 str),
             tax_id                              = tax_id,
-            cvm_code                            = row.required('Codigo_CVM_Auditor',                      int),
+            cvm_code                            = row.required('Codigo_CVM_Auditor',                      utils.lzstrip),
             activity_started                    = row.required('Data_Inicio_Atuacao_Auditor',             utils.date_from_string),
             activity_ended                      = row.optional('Data_Fim_Atuacao_Auditor',                utils.date_from_string),
             technical_manager_name              = row.required('Responsavel_Tecnico',                     str),

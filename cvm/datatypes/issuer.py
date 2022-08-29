@@ -36,7 +36,7 @@ class IssuerCompany:
     cnpj: datatypes.CNPJ
     """(1.5) 'CNPJ'"""
 
-    cvm_code: int
+    cvm_code: str
     """1.6 Código CVM"""
 
     cvm_registration_date: datetime.date

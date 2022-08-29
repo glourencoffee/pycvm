@@ -28,7 +28,7 @@ class RegularDocumentHeadReader:
             reference_date = row.required('DT_REFER',  utils.date_from_string),
             version        = row.required('VERSAO',    int),
             company_name   = row.required('DENOM_CIA', str),
-            cvm_code       = row.required('CD_CVM',    int),
+            cvm_code       = row.required('CD_CVM',    utils.lzstrip),
             type           = doctype,
             id             = row.required('ID_DOC',    int),
             receipt_date   = row.required('DT_RECEB',  utils.date_from_string),

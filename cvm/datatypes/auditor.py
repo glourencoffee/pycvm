@@ -13,7 +13,7 @@ class Auditor:
     tax_id: datatypes.TaxID
     """(3.2) 'CNPJ/CPF'"""
 
-    cvm_code: int
+    cvm_code: str
     """(N/A) This data item is not required by CVM, but is provided nonetheless."""
 
     activity_started: datetime.date

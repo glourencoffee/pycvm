@@ -22,7 +22,7 @@ class RegularDocument:
     reference_date: datetime.date
     version: int
     company_name: str
-    cvm_code: int
+    cvm_code: str
     type: DocumentType
     id: int
     receipt_date: datetime.date

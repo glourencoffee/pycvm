@@ -5,3 +5,8 @@ def date_from_string(date_string: str) -> datetime.date:
 
 def date_to_string(date: datetime.time) -> str:
     return date.strftime('%Y-%m-%d')
+
+def lzstrip(s: str) -> str:
+    """Strip leading zeroes."""
+
+    return s.lstrip('0')
