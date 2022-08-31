@@ -8,7 +8,7 @@ class DocumentType(datatypes.DescriptiveIntEnum):
     DFP = (1, 'Demonstrações Fiscais Padronizadas')
     ITR = (2, 'Informe Trimestral')
 
-@dataclasses.dataclass(init=True, frozen=True, repr=False)
+@dataclasses.dataclass(init=True, repr=False)
 class RegularDocument:
     """A regular document is a structured document specified by a CVM Instruction.
     
@@ -29,9 +29,9 @@ class RegularDocument:
     url: str
 
     def __repr__(self) -> str:
-        return f'RegularDocument<id={self.id} type={self.type} version={self.version} CNPJ={self.cnpj}'
+        return f'<RegularDocument: id={self.id} type={self.type} version={self.version} CNPJ={self.cnpj}>'
 
-@dataclasses.dataclass(init=True, frozen=True, repr=False)
+@dataclasses.dataclass(init=True, repr=False)
 class FCA(RegularDocument):
     """A Registration Form ("Formulário Cadastral" or "FCA") is a regular document
     that open-market companies are required to send to CVM. It is specified by the
@@ -61,7 +61,7 @@ class FCA(RegularDocument):
     shareholder_department: typing.Tuple[datatypes.ShareholderDepartmentPerson]
     """Instruction Item 6"""
 
-@dataclasses.dataclass(init=True, frozen=True, repr=False)
+@dataclasses.dataclass(init=True, repr=False)
 class DFPITR(RegularDocument):
     """Implements the financial statement documents of Instruction CVM 480/2009.
     
@@ -78,11 +78,17 @@ class DFPITR(RegularDocument):
     two types of document, use the attribute `RegularDocument.type`.
     """
 
-    individual: typing.Mapping[datatypes.FiscalYearOrder, datatypes.StatementCollection]
-    consolidated: typing.Mapping[datatypes.FiscalYearOrder, datatypes.StatementCollection]
+    individual: typing.Optional[datatypes.GroupedStatementCollection]
+    consolidated: typing.Optional[datatypes.GroupedStatementCollection]
 
-    def __getitem__(self, balance_type: datatypes.BalanceType) -> typing.Mapping[datatypes.FiscalYearOrder, datatypes.StatementCollection]:
+    def grouped_collections(self) -> typing.Generator[datatypes.GroupedStatementCollection, None, None]:
+        return (coll for coll in (self.individual, self.consolidated) if coll is not None)
+
+    def grouped_collection(self, balance_type: datatypes.BalanceType) -> typing.Optional[datatypes.GroupedStatementCollection]:
         if balance_type == datatypes.BalanceType.CONSOLIDATED:
             return self.consolidated
         else:
             return self.individual
+
+    def __getitem__(self, balance_type: datatypes.BalanceType) -> typing.Optional[datatypes.GroupedStatementCollection]:
+        return self.grouped_collection(balance_type)

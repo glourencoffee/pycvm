@@ -7,7 +7,8 @@ from cvm.datatypes.security               import Security, SecurityType, MarketS
 from cvm.datatypes.account                import Account, AccountTuple
 from cvm.datatypes.statement              import StatementType, BalanceType, DFCMethod,\
                                                  FiscalYearOrder, BPx, DRxDVA, DFC, DMPL,\
-                                                 StatementCollection
+                                                 StatementCollection, GroupedStatementCollection,\
+                                                 Statement
 from cvm.datatypes.phone                  import Phone
 from cvm.datatypes.address                import Address
 from cvm.datatypes.contact                import Contact

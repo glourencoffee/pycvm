@@ -110,25 +110,23 @@ class IncomeStatement:
     @classmethod
     def from_collection(cls,
                         collection: datatypes.StatementCollection,
-                        balance_type: datatypes.BalanceType,
                         reference_date: datetime.date
     ) -> IncomeStatement:
         return cls.from_accounts(
             collection.dre.accounts,
-            balance_type,
+            collection.balance_type,
             reference_date
         )
 
     @classmethod
-    def from_document(cls,
-                      document: datatypes.DFPITR,
-                      balance_type: datatypes.BalanceType = datatypes.BalanceType.CONSOLIDATED
+    def from_dfpitr(cls,
+                    dfpitr: datatypes.DFPITR,
+                    balance_type: datatypes.BalanceType = datatypes.BalanceType.CONSOLIDATED,
+                    fiscal_year_order: datatypes.FiscalYearOrder = datatypes.FiscalYearOrder.LAST
     ) -> IncomeStatement:
-        mapping    = document[balance_type]
-        collection = mapping[datatypes.FiscalYearOrder.LAST]
+        grouped_collection = dfpitr[balance_type]
 
-        return cls.from_collection(
-            collection,
-            balance_type,
-            document.reference_date
-        )
+        if grouped_collection is None:
+            raise ValueError(f'{dfpitr} does not have a grouped collection for balance type {balance_type}')
+
+        return cls.from_collection(grouped_collection[fiscal_year_order], dfpitr.reference_date)

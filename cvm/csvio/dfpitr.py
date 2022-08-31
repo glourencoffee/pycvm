@@ -6,15 +6,16 @@ import enum
 import io
 import os
 import typing
-import types
 import zipfile
 import zlib
+from cvm import datatypes
+from cvm.csvio.batch import CSVBatch
 from cvm.csvio.document      import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
 from cvm.csvio.row           import CSVRow
 from cvm.datatypes.account   import Account, AccountTuple
 from cvm.datatypes.currency  import Currency, CurrencySize
 from cvm.datatypes.tax_id    import CNPJ
-from cvm.datatypes.statement import StatementType, DFCMethod, FiscalYearOrder, BPx, DRxDVA, DFC, DMPL, StatementCollection
+from cvm.datatypes.statement import GroupedStatementCollection, StatementType, Statement, DFCMethod, FiscalYearOrder, BPx, DRxDVA, DFC, DMPL
 from cvm.datatypes.document  import DFPITR
 from cvm.exceptions          import ZipMemberError, NotImplementedException, InvalidValueError, BadDocument
 from cvm.utils               import date_from_string
@@ -90,13 +91,15 @@ class StatementReader(RegularDocumentBodyReader):
         return _row_batch_id(cnpj, reference_date, version)
 
     def read(self, expected_batch_id: int):
-        raise NotImplementedException(self.__class__, 'read')
+        batch = self.read_expected_batch(expected_batch_id)
+        stmts = self.read_statements(batch)
+
+        return stmts
 
     def read_common(self, row: CSVRow) -> typing.Tuple[Currency, CurrencySize, datetime.date]:
         return (
             row.required('MOEDA',        Currency),
-            row.required('ESCALA_MOEDA', CurrencySize),
-            row.required('DT_FIM_EXERC', date_from_string)
+            row.required('ESCALA_MOEDA', CurrencySize)
         )
 
     def read_account(self, row: CSVRow) -> Account:
@@ -107,62 +110,74 @@ class StatementReader(RegularDocumentBodyReader):
             is_fixed  = row.required('ST_CONTA_FIXA', str) == 'S'
         )
 
-    def read_fiscal_year_accounts(self, batch) -> typing.DefaultDict[FiscalYearOrder, typing.List[Account]]:
-        accounts = collections.defaultdict(list)
-
-        for row in batch:
-            fy_order = row.required('ORDEM_EXERC', FiscalYearOrder)
-            account  = self.read_account(row)
-            accounts[fy_order].append(account)
+    def read_accounts(self, rows: typing.List[CSVRow]) -> AccountTuple:
+        currency, currency_size = self.read_common(rows[0])
+        accounts = AccountTuple(currency, currency_size, (self.read_account(row) for row in rows))
 
         return accounts
 
+    def read_statements(self, batch: CSVBatch) -> typing.List[typing.Any]:
+        grouped_rows = collections.defaultdict(list)
+
+        for row in batch:
+            key = self.read_group_key(row)
+            grouped_rows[key].append(row)
+
+        statements = []
+
+        for key, rows in grouped_rows.items():
+            statement = self.create_statement(rows)
+            statements.append(statement)
+
+        return statements
+
+    def read_group_key(self, row: CSVRow) -> str:
+        key = ''
+
+        for fieldname in self.group_key_fields():
+            key += row.required(fieldname, str)
+
+        return key
+
+    def group_key_fields(self) -> typing.Sequence[str]:
+        raise NotImplementedException(self.__class__, 'group_key_fields')
+
+    def create_statement(self, rows: typing.List[CSVRow]) -> Statement:
+        raise NotImplementedException(self.__class__, 'create_statement')
+
 class BPxReader(StatementReader):
-    def read(self, expected_batch_id: int) -> typing.Mapping[FiscalYearOrder, BPx]:
-        batch     = self.read_expected_batch(expected_batch_id)
-        first_row = batch.rows[0]
+    def group_key_fields(self) -> typing.Sequence[str]:
+        return ('ORDEM_EXERC', 'DT_FIM_EXERC')
 
-        currency,\
-        currency_size,\
-        fiscal_year_end = self.read_common(first_row)
-        fy_accounts     = self.read_fiscal_year_accounts(batch)
+    def create_statement(self, rows: typing.List[CSVRow]) -> BPx:
+        first_row = rows[0]
 
-        docs = {}
-
-        for fy_order, accounts in fy_accounts.items():
-            docs[fy_order] = BPx(
-                fiscal_year_end = fiscal_year_end,
-                accounts        = AccountTuple(currency, currency_size, accounts)
-            )
-
-        return types.MappingProxyType(docs)
+        return BPx(
+            fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
+            accounts          = self.read_accounts(rows)
+        )
 
 class DRxDVAReader(StatementReader):
-    def read(self, expected_batch_id: int) -> typing.Mapping[FiscalYearOrder, DRxDVA]:
-        batch     = self.read_expected_batch(expected_batch_id)
-        first_row = batch.rows[0]
+    def group_key_fields(self) -> typing.Sequence[str]:
+        return ('ORDEM_EXERC', 'DT_INI_EXERC', 'DT_FIM_EXERC')
 
-        currency,\
-        currency_size,\
-        fiscal_year_end   = self.read_common(first_row)
-        fiscal_year_start = first_row.required('DT_INI_EXERC', date_from_string)
-        fy_accounts       = self.read_fiscal_year_accounts(batch)
+    def create_statement(self, rows: typing.List[CSVRow]) -> DRxDVA:
+        first_row = rows[0]
 
-        docs = {}
-
-        for fy_order, accounts in fy_accounts.items():
-            docs[fy_order] = DRxDVA(
-                fiscal_year_start = fiscal_year_start,
-                fiscal_year_end   = fiscal_year_end,
-                accounts          = AccountTuple(currency, currency_size, accounts)
-            )
-        
-        return types.MappingProxyType(docs)
+        return DRxDVA(
+            fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
+            period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
+            accounts          = self.read_accounts(rows)
+        )
 
 class DFCReader(StatementReader):
-    def read(self, expected_batch_id: int) -> typing.Mapping[FiscalYearOrder, DFC]:
-        batch     = self.read_expected_batch(expected_batch_id)
-        first_row = batch.rows[0]
+    def group_key_fields(self) -> typing.Sequence[str]:
+        return ('ORDEM_EXERC', 'DT_INI_EXERC', 'DT_FIM_EXERC')
+
+    def create_statement(self, rows: typing.List[CSVRow]) -> DFC:
+        first_row = rows[0]
 
         statement_name = first_row.required('GRUPO_DFP', str)
 
@@ -175,61 +190,42 @@ class DFCReader(StatementReader):
 
         dfc_method = DFCMethod(dfc_method_name)
 
-        currency,\
-        currency_size,\
-        fiscal_year_end   = self.read_common(first_row)
-        fiscal_year_start = first_row.required('DT_INI_EXERC', date_from_string)
-        fy_accounts       = self.read_fiscal_year_accounts(batch)
-        
-        docs = {}
-
-        for fy_order, accounts in fy_accounts.items():
-            docs[fy_order] = DFC(
-                method            = dfc_method,
-                fiscal_year_start = fiscal_year_start,
-                fiscal_year_end   = fiscal_year_end,
-                accounts          = AccountTuple(currency, currency_size, accounts)
-            )
-
-        return types.MappingProxyType(docs)
+        return DFC(
+            fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            method            = dfc_method,
+            period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
+            period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
+            accounts          = self.read_accounts(rows)
+        )
 
 class DMPLReader(StatementReader):
-    def read_fiscal_year_columns(self, batch) -> typing.DefaultDict[FiscalYearOrder, typing.Mapping[str, typing.List[Account]]]:
-        columns = collections.defaultdict(lambda: collections.defaultdict(list))
+    def group_key_fields(self) -> typing.Sequence[str]:
+        return ('ORDEM_EXERC', 'DT_INI_EXERC', 'DT_FIM_EXERC')
 
-        for row in batch:
-            fy_order = row.required('ORDEM_EXERC', FiscalYearOrder)
-            column   = row['COLUNA_DF']
-            account  = self.read_account(row)
-            columns[fy_order][column].append(account)
+    def create_statement(self, rows: typing.List[CSVRow]) -> DMPL:
+        first_row = rows[0]
 
-        return columns
+        columns_with_accounts = collections.defaultdict(list)
 
-    def read(self, expected_batch_id: int) -> typing.Mapping[FiscalYearOrder, DMPL]:
-        batch     = self.read_expected_batch(expected_batch_id)
-        first_row = batch.rows[0]
-
-        currency,\
-        currency_size,\
-        fiscal_year_end   = self.read_common(first_row)
-        fiscal_year_start = first_row.required('DT_INI_EXERC', date_from_string)
-        fy_columns        = self.read_fiscal_year_columns(batch)
-        
-        docs = {}
-
-        for fy_order, columns in fy_columns.items():
-            immutable_columns = {}
+        for row in rows:
+            column  = row.required('COLUNA_DF', str)
+            account = self.read_account(row)
             
-            for column, accounts in columns.items():
-                immutable_columns[column] = AccountTuple(currency, currency_size, accounts)
+            columns_with_accounts[column].append(account)
 
-            docs[fy_order] = DMPL(
-                fiscal_year_start = fiscal_year_start,
-                fiscal_year_end   = fiscal_year_end,
-                columns           = types.MappingProxyType(immutable_columns)
-            )
+        columns_with_account_tuple = {}
 
-        return types.MappingProxyType(docs)
+        currency, currency_size = self.read_common(first_row)
+
+        for column, accounts in columns_with_accounts.items():
+            columns_with_account_tuple[column] = AccountTuple(currency, currency_size, accounts)
+
+        return DMPL(
+            fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
+            period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
+            columns           = columns_with_account_tuple
+        )
 
 class BalanceFlag(enum.IntFlag):
     NONE         = 0
@@ -322,59 +318,49 @@ def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DF
 
             # print(head.company_name, 'version:', head.version)
 
-            def read_statements(readers):
-                statements = collections.defaultdict(dict)
+            def read_statements_mapped_by_type(readers):
+                statements_by_type = collections.defaultdict(dict)
 
                 for stmt_type, stmt_reader in readers.items():
                     try:
-                        fy_stmts = stmt_reader.read(head_batch_id)
+                        statements = stmt_reader.read(head_batch_id)
                     except (UnexpectedBatch, StopIteration):
                         continue
 
                     if stmt_type in (StatementType.DFC_MD, StatementType.DFC_MI):
                         stmt_type = StatementType.DFC
 
-                    for fy_order, stmt in fy_stmts.items():
-                        statements[fy_order][stmt_type] = stmt
+                    statements_by_type[stmt_type] = statements
                 
-                return statements
+                return statements_by_type
 
-            ind_statements = read_statements(ind_readers)
-            con_statements = read_statements(con_readers)
-
-            def make_statement_collections(fy_statements):
-                collections = {}
-
-                for fy_order, statements in fy_statements.items():
-                    try:
-                        collections[fy_order] = StatementCollection(statements)
-                    except KeyError as exc:
-                        raise BadDocument(str(exc)) from None
-
-                return collections
+            ind_statements = read_statements_mapped_by_type(ind_readers)
+            con_statements = read_statements_mapped_by_type(con_readers)
 
             try:
                 if len(ind_statements) > 0:
                     # If at least one statement was read, all others must have been too.
-                    individual = make_statement_collections(ind_statements)
+                    individual = GroupedStatementCollection(datatypes.BalanceType.INDIVIDUAL, ind_statements)
                 else:
                     # No statement was read. That means we have processed either:
                     # 1) An old version document that has no statements; or
                     # 2) A document that has individual statements only.
-                    individual = types.MappingProxyType({})
+                    individual = None
 
                 if len(con_statements) > 0:
-                    consolidated = make_statement_collections(con_statements)
+                    consolidated = GroupedStatementCollection(datatypes.BalanceType.CONSOLIDATED, con_statements)
                 else:
-                    consolidated = types.MappingProxyType({})
+                    consolidated = None
 
-            except BadDocument as exc:
+            except KeyError as exc:
                 # TODO: Throwing exceptions stops yielding further documents.
                 #       Maybe store all exceptions and throw them in one go later?
                 print(
                     f"failed to read {head.type.name} statements from document #{head.id} "
                     f"('{head.company_name}' version {head.version}): {exc}"
                 )
+
+                continue
 
             yield DFPITR(
                 cnpj           = head.cnpj,
