@@ -10,7 +10,12 @@ def print_accounts(accounts: cvm.datatypes.AccountTuple):
 
     print(df.to_string())
 
-def print_collection(collection: cvm.datatypes.StatementCollection, consolidated_text: str):
+def print_collection(collection: cvm.datatypes.StatementCollection):
+    if collection.balance_type == cvm.datatypes.BalanceType.CONSOLIDATED:
+        consolidated_text = 'consolidado'
+    else:
+        consolidated_text = 'individual'
+
     print('---------------------')
     print('1 - BPA (', consolidated_text, '):', sep='')
     print_accounts(collection.bpa.accounts.normalized())
@@ -27,13 +32,8 @@ def print_document(dfpitr: cvm.datatypes.DFPITR):
     print('===============================================')
     print(dfpitr.company_name, ' (', dfpitr.reference_date, ') (versão: ', dfpitr.version, ')', sep='')
 
-    last_fy = cvm.datatypes.FiscalYearOrder.LAST
-
-    if len(dfpitr.individual) > 0:
-        print_collection(dfpitr.individual[last_fy], 'individual')
-
-    if len(dfpitr.consolidated) > 0:
-        print_collection(dfpitr.consolidated[last_fy], 'consolidado')
+    for grouped_collection in dfpitr.grouped_collections():
+        print_collection(grouped_collection.last)
 
 def main():
     if len(sys.argv) < 2:

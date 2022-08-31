@@ -3,13 +3,17 @@ import sys
 import cvm
 import pandas as pd
 
-def print_document(dfpitr: cvm.datatypes.DFPITR):
+def print_dfpitr(dfpitr: cvm.datatypes.DFPITR):
     print('=================================')
     print(dfpitr.company_name, ' (', dfpitr.reference_date, ', versão: ', dfpitr.version, ')', sep='')
 
+    if dfpitr.consolidated is None:
+        print('o DFP/ITR não tem balanço consolidado')
+        return
+
     try:
-        balance_sheet = cvm.balances.BalanceSheet.from_document(dfpitr)
-        income_stmt   = cvm.balances.IncomeStatement.from_document(dfpitr)
+        balance_sheet = cvm.balances.BalanceSheet.from_dfpitr(dfpitr)
+        income_stmt   = cvm.balances.IncomeStatement.from_dfpitr(dfpitr)
         
         print()
         print('Balanço Patrimonial')
@@ -19,8 +23,6 @@ def print_document(dfpitr: cvm.datatypes.DFPITR):
         print('Demonstração de Resultado')
         print('----------------')
         print(pd.DataFrame([income_stmt]).transpose().to_string(header=False))
-    except KeyError as exc:
-        pass
     except cvm.exceptions.AccountLayoutError as exc:
         print('erro:', exc)
 
@@ -31,7 +33,7 @@ def main():
     try:
         with zipfile.ZipFile(sys.argv[1]) as file:
             for dfpitr in cvm.csvio.dfpitr_reader(file):
-                print_document(dfpitr)
+                print_dfpitr(dfpitr)
 
     except KeyboardInterrupt:
         pass
