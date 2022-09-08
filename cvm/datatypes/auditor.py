@@ -3,6 +3,10 @@ import datetime
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'Auditor'
+]
+
 @dataclasses.dataclass(init=True, frozen=True)
 class Auditor:
     """Implements a data structure for Item 3 of CVM Instruction 480/2009."""

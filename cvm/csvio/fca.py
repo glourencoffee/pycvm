@@ -7,6 +7,10 @@ from cvm                import datatypes, exceptions, utils
 from cvm.csvio.document import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
 from cvm.csvio.row      import CSVRow
 
+__all__ = [
+    'fca_reader'
+]
+
 class _MemberNameList:
     head_filename: str
     auditor_filename: str
@@ -420,7 +424,7 @@ def _zip_reader(file: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, 
                 shareholder_department        = tuple(shareholder_dept)
             )
 
-def reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str]) -> typing.Generator[datatypes.FCA, None, None]:
+def fca_reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str]) -> typing.Generator[datatypes.FCA, None, None]:
     if not isinstance(file, zipfile.ZipFile):
         file = zipfile.ZipFile(file)
 

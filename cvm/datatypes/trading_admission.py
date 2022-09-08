@@ -2,6 +2,10 @@ import dataclasses
 import datetime
 from cvm import datatypes
 
+__all__ = [
+    'TradingAdmission'
+]
+
 @dataclasses.dataclass(init=True, frozen=True)
 class TradingAdmission:
     foreign_country: datatypes.Country

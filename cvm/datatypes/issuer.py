@@ -3,6 +3,12 @@ import typing
 import datetime
 from cvm import datatypes
 
+__all__ = [
+    'IssuerStatus',
+    'IssuerAddressType',
+    'IssuerCompany'
+]
+
 class IssuerStatus(datatypes.DescriptiveIntEnum):
     PRE_OPERATIONAL_PHASE           = (1, 'Fase Pré-Operacional')
     OPERATIONAL_PHASE               = (2, 'Fase Operacional')

@@ -3,6 +3,14 @@ import datetime
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'SecurityType',
+    'MarketType',
+    'MarketSegment',
+    'PreferredShareType',
+    'Security'
+]
+
 class SecurityType(datatypes.DescriptiveIntEnum):
     STOCK                               = (1,  'Ações Ordinárias')
     DEBENTURE                           = (2,  'Debêntures')

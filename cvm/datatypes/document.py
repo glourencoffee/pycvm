@@ -3,6 +3,13 @@ import datetime
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'DocumentType',
+    'RegularDocument',
+    'FCA',
+    'DFPITR'
+]
+
 class DocumentType(datatypes.DescriptiveIntEnum):
     FCA = (0, 'Formulário Cadastral')
     DFP = (1, 'Demonstrações Fiscais Padronizadas')

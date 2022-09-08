@@ -11,6 +11,10 @@ from cvm.balances.insurance.bpa  import InsuranceBPAValidator
 from cvm.balances.insurance.bpp  import InsuranceBPPValidator
 from cvm                         import datatypes, exceptions
 
+__all__ = [
+    'BalanceSheet'
+]
+
 __validator_pairs__ = (
     (IndustrialBPAValidator, IndustrialBPPValidator),
     (FinancialBPAValidator,  FinancialBPPValidator),
