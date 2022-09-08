@@ -4,18 +4,14 @@ import datetime
 import typing
 from cvm import datatypes
 
-# TODO: DFC_MD and DFC_MI should be removed,
-#       as there is already a class for them (DFCMethod)
 class StatementType(datatypes.DescriptiveIntEnum):
-    BPA    = (1, 'Balanço Patrimonial Ativo')
-    BPP    = (2, 'Balanço Patrimonial Passivo')
-    DRE    = (3, 'Demonstração de Resultado')
-    DRA    = (4, 'Demonstração de Resultado Abrangente')
-    DFC    = (5, 'Demonstração de Fluxo de Caixa')
-    DFC_MD = (6, 'Demonstração de Fluxo de Caixa (Método Direto)')
-    DFC_MI = (7, 'Demonstração de Fluxo de Caixa (Método Indireto)')
-    DMPL   = (8, 'Demonstração das Mutações do Patrimônio Líquido')
-    DVA    = (9, 'Demonstração de Valor Adicionado')
+    BPA  = (1, 'Balanço Patrimonial Ativo')
+    BPP  = (2, 'Balanço Patrimonial Passivo')
+    DRE  = (3, 'Demonstração de Resultado')
+    DRA  = (4, 'Demonstração de Resultado Abrangente')
+    DFC  = (5, 'Demonstração de Fluxo de Caixa')
+    DMPL = (6, 'Demonstração das Mutações do Patrimônio Líquido')
+    DVA  = (7, 'Demonstração de Valor Adicionado')
 
 class BalanceType(datatypes.DescriptiveIntEnum):
     INDIVIDUAL   = (0, 'Individual')
