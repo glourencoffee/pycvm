@@ -3,15 +3,15 @@ import sys
 import time
 import pandas as pd
 
-def print_accounts(accounts: cvm.datatypes.AccountTuple):
+def print_accounts(accounts: cvm.AccountTuple):
     columns = ['Código', 'Descrição', 'Quantidade', 'Fixa']
     data    = [t for t in accounts.items()]
     df      = pd.DataFrame(data=data, columns=columns)
 
     print(df.to_string())
 
-def print_collection(collection: cvm.datatypes.StatementCollection):
-    if collection.balance_type == cvm.datatypes.BalanceType.CONSOLIDATED:
+def print_collection(collection: cvm.StatementCollection):
+    if collection.balance_type == cvm.BalanceType.CONSOLIDATED:
         consolidated_text = 'consolidado'
     else:
         consolidated_text = 'individual'
@@ -28,7 +28,7 @@ def print_collection(collection: cvm.datatypes.StatementCollection):
     print('3 - DRE (', consolidated_text, '):', sep='')
     print_accounts(collection.dre.accounts.normalized())
 
-def print_document(dfpitr: cvm.datatypes.DFPITR):
+def print_document(dfpitr: cvm.DFPITR):
     print('===============================================')
     print(dfpitr.company_name, ' (', dfpitr.reference_date, ') (versão: ', dfpitr.version, ')', sep='')
 
@@ -40,7 +40,7 @@ def main():
         print('usage: print_accounts.py <dfpitr>')
         return 1
 
-    for dfpitr in cvm.csvio.dfpitr_reader(sys.argv[1]):
+    for dfpitr in cvm.dfpitr_reader(sys.argv[1]):
         try:
             print_document(dfpitr)
             time.sleep(2)
