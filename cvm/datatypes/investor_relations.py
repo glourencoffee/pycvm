@@ -3,6 +3,11 @@ import datetime
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'InvestorRelationsOfficerType',
+    'InvestorRelationsOfficer'
+]
+
 class InvestorRelationsOfficerType(datatypes.DescriptiveIntEnum):
     INVESTOR_RELATIONS_OFFICER = (1, 'Diretor de relações com investidores')
     LIQUIDATOR                 = (2, 'Liquidante')

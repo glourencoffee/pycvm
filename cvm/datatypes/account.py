@@ -4,6 +4,11 @@ import decimal
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'Account',
+    'AccountTuple'
+]
+
 @dataclasses.dataclass(init=True, frozen=True)
 class Account:
     code: str

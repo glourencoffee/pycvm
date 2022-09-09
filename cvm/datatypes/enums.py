@@ -1,5 +1,10 @@
 import enum
 
+__all__ = [
+    'CaseInsentiveEnum',
+    'DescriptiveIntEnum'
+]
+
 class CaseInsentiveEnum(enum.Enum):
     @classmethod
     def _missing_(cls, value):

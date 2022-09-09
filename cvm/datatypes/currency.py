@@ -1,5 +1,10 @@
 from cvm import datatypes
 
+__all__ = [
+    'Currency',
+    'CurrencySize'
+]
+
 class Currency(datatypes.DescriptiveIntEnum):
     BRL = (1, 'Real')
 

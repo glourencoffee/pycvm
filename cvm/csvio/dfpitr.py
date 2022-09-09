@@ -20,6 +20,11 @@ from cvm.datatypes.document  import DFPITR
 from cvm.exceptions          import ZipMemberError, NotImplementedException, InvalidValueError, BadDocument
 from cvm.utils               import date_from_string
 
+__all__ = [
+    'BalanceFlag',
+    'dfpitr_reader'
+]
+
 class _StatementFileNames:
     bpa: str
     bpp: str
@@ -383,8 +388,8 @@ def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DF
                 consolidated   = consolidated
             )
 
-def reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str],
-           flag: BalanceFlag = BalanceFlag.CONSOLIDATED|BalanceFlag.INDIVIDUAL
+def dfpitr_reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str],
+                  flag: BalanceFlag = BalanceFlag.CONSOLIDATED|BalanceFlag.INDIVIDUAL
 ) -> typing.Generator[DFPITR, None, None]:
 
     if not isinstance(file, zipfile.ZipFile):

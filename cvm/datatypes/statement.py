@@ -4,6 +4,20 @@ import datetime
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'StatementType',
+    'BalanceType',
+    'DFCMethod',
+    'FiscalYearOrder',
+    'Statement',
+    'BPx',
+    'DRxDVA',
+    'DFC',
+    'DMPL',
+    'StatementCollection',
+    'GroupedStatementCollection'
+]
+
 class StatementType(datatypes.DescriptiveIntEnum):
     BPA  = (1, 'Balanço Patrimonial Ativo')
     BPP  = (2, 'Balanço Patrimonial Passivo')

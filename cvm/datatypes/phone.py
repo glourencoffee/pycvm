@@ -1,6 +1,10 @@
 import typing
 import dataclasses
 
+__all__ = [
+    'Phone'
+]
+
 @dataclasses.dataclass(init=True, frozen=True)
 class Phone:
     country_code: typing.Optional[int]

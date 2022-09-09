@@ -2,6 +2,10 @@ import dataclasses
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'Address'
+]
+
 @dataclasses.dataclass(init=True, frozen=True)
 class Address:
     street: str

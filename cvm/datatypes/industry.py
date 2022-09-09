@@ -1,5 +1,9 @@
 from cvm import datatypes
 
+__all__ = [
+    'Industry'
+]
+
 class Industry(datatypes.DescriptiveIntEnum):
     OIL_AND_GAS                                          = (1010, 'Petróleo e Gás')
     PETROCHEMICAL_AND_RUBBER                             = (1020, 'Petroquímicos e Borracha')

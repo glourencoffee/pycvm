@@ -7,6 +7,10 @@ from cvm.balances.industrial.dre import IndustrialDREValidator
 from cvm.balances.financial.dre  import FinancialDREValidator
 from cvm.balances.insurance.dre  import InsuranceDREValidator
 
+__all__ = [
+    'IncomeStatement'
+]
+
 __validators__ = (
     IndustrialDREValidator,
     FinancialDREValidator,
