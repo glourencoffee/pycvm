@@ -3,7 +3,7 @@ import sys
 import cvm
 import pandas as pd
 
-def print_dfpitr(dfpitr: cvm.datatypes.DFPITR):
+def print_dfpitr(dfpitr: cvm.DFPITR):
     print('=================================')
     print(dfpitr.company_name, ' (', dfpitr.reference_date, ', versão: ', dfpitr.version, ')', sep='')
 
@@ -12,8 +12,8 @@ def print_dfpitr(dfpitr: cvm.datatypes.DFPITR):
         return
 
     try:
-        balance_sheet = cvm.balances.BalanceSheet.from_dfpitr(dfpitr)
-        income_stmt   = cvm.balances.IncomeStatement.from_dfpitr(dfpitr)
+        balance_sheet = cvm.BalanceSheet.from_dfpitr(dfpitr)
+        income_stmt   = cvm.IncomeStatement.from_dfpitr(dfpitr)
         
         print()
         print('Balanço Patrimonial')
@@ -23,16 +23,17 @@ def print_dfpitr(dfpitr: cvm.datatypes.DFPITR):
         print('Demonstração de Resultado')
         print('----------------')
         print(pd.DataFrame([income_stmt]).transpose().to_string(header=False))
-    except cvm.exceptions.AccountLayoutError as exc:
+    except cvm.AccountLayoutError as exc:
         print('erro:', exc)
 
 def main():
     if len(sys.argv) < 2:
         print('usage: print_balances.py <file>')
+        return 1
 
     try:
         with zipfile.ZipFile(sys.argv[1]) as file:
-            for dfpitr in cvm.csvio.dfpitr_reader(file):
+            for dfpitr in cvm.dfpitr_reader(file):
                 print_dfpitr(dfpitr)
 
     except KeyboardInterrupt:
