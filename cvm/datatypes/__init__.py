@@ -4,7 +4,7 @@ from cvm.datatypes.currency               import Currency, CurrencySize
 from cvm.datatypes.federated_state        import FederatedState
 from cvm.datatypes.country                import Country
 from cvm.datatypes.security               import Security, SecurityType, MarketSegment, MarketType, PreferredShareType
-from cvm.datatypes.account                import Account, AccountTuple
+from cvm.datatypes.account                import BaseAccount, Account, DMPLAccount, AccountTuple, DMPLAccountTuple
 from cvm.datatypes.statement              import StatementType, BalanceType, DFCMethod,\
                                                  FiscalYearOrder, BPx, DRxDVA, DFC, DMPL,\
                                                  StatementCollection, GroupedStatementCollection,\

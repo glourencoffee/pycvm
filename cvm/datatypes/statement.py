@@ -1,4 +1,3 @@
-import collections
 import dataclasses
 import datetime
 import typing
@@ -90,18 +89,18 @@ class DFC(Statement):
 
 @dataclasses.dataclass(init=True)
 class DMPL(Statement):
-    """Statement of Change in Net Equity ('Demonstração das Mutações do Patrimônio Líquido' or 'DMPL')"""
+    """Statement of Changes in Net Equity ('Demonstração das Mutações do Patrimônio Líquido' or 'DMPL')"""
 
     period_start_date: datetime.date
     period_end_date: datetime.date
-    columns: typing.Dict[str, datatypes.AccountTuple]
+    accounts: datatypes.DMPLAccountTuple
 
     def __repr__(self) -> str:
         return (
             '<DMPL: '
                 f'fiscal_year_order={self.fiscal_year_order.name} '
                 f'period=({self.period_start_date}, {self.period_end_date}) '
-                f'columns={list(self.columns.keys())}'
+                f'accounts={len(self.accounts)}'
             '>'
         )
 

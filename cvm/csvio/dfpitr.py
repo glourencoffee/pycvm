@@ -202,29 +202,68 @@ class DMPLReader(StatementReader):
     def group_key_fields(self) -> typing.Sequence[str]:
         return ('ORDEM_EXERC', 'DT_INI_EXERC', 'DT_FIM_EXERC')
 
+    def create_dmpl_account(self, code: str, name: str, is_fixed: bool, quantities: typing.Dict[str, int]) -> datatypes.DMPLAccount:
+        # TODO
+        # The below reading of attributes from `quantities`
+        # raises `KeyError` if a required column is missing.
+        # Should we re-raise it as another exception defined
+        # by this library?
+        return datatypes.DMPLAccount(
+            code                                = code,
+            name                                = name,
+            is_fixed                            = is_fixed,
+            share_capital                       = quantities['Capital Social Integralizado'],
+            capital_reserve_and_treasury_shares = quantities['Reservas de Capital, Opções Outorgadas e Ações em Tesouraria'],
+            profit_reserves                     = quantities['Reservas de Lucro'],
+            unappropriated_retained_earnings    = quantities['Lucros ou Prejuízos Acumulados'],
+            other_comprehensive_income          = quantities['Outros Resultados Abrangentes'],
+            controlling_interest                = quantities['Patrimônio Líquido'],
+            non_controlling_interest            = quantities.get('Participação dos Não Controladores', None),
+            consolidated_equity                 = quantities.get('Patrimônio Líquido Consolidado', None)
+        )
+
     def create_statement(self, rows: typing.List[CSVRow]) -> DMPL:
         first_row = rows[0]
 
-        columns_with_accounts = collections.defaultdict(list)
+        last_account  = None
+        quantities    = {}
+        dmpl_accounts = []
 
         for row in rows:
             column  = row.required('COLUNA_DF', str)
             account = self.read_account(row)
             
-            columns_with_accounts[column].append(account)
+            if last_account is not None and account.name != last_account.name:
+                dmpl_account = self.create_dmpl_account(
+                    last_account.name,
+                    last_account.code,
+                    last_account.is_fixed,
+                    quantities
+                )
 
-        columns_with_account_tuple = {}
+                dmpl_accounts.append(dmpl_account)
+                quantities.clear()
+
+            quantities[column] = account.quantity
+            last_account = account
+
+        if last_account is not None:
+            dmpl_account = self.create_dmpl_account(
+                last_account.name,
+                last_account.code,
+                last_account.is_fixed,
+                quantities
+            )
+
+            dmpl_accounts.append(dmpl_account)
 
         currency, currency_size = self.read_common(first_row)
-
-        for column, accounts in columns_with_accounts.items():
-            columns_with_account_tuple[column] = AccountTuple(currency, currency_size, accounts)
 
         return DMPL(
             fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
             period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
-            columns           = columns_with_account_tuple
+            accounts          = datatypes.DMPLAccountTuple(currency, currency_size, dmpl_accounts)
         )
 
 class BalanceFlag(enum.IntFlag):
