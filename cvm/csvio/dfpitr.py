@@ -20,15 +20,25 @@ from cvm.datatypes.document  import DFPITR
 from cvm.exceptions          import ZipMemberError, NotImplementedException, InvalidValueError, BadDocument
 from cvm.utils               import date_from_string
 
+class _StatementFileNames:
+    bpa: str
+    bpp: str
+    dfc_md: str
+    dfc_mi: str
+    dmpl: str
+    dra: str
+    dre: str
+    dva: str
+
 class _MemberNameList:
-    head_filename: str
-    con_filenames: typing.Dict[StatementType, str]
-    ind_filenames: typing.Dict[StatementType, str]
+    head: str
+    con: _StatementFileNames
+    ind: _StatementFileNames
 
     def __init__(self, namelist: typing.Iterable[str]):
-        self.head_filename = ''
-        self.con_filenames = {}
-        self.ind_filenames = {}
+        self.head = ''
+        self.con  = _StatementFileNames()
+        self.ind  = _StatementFileNames()
 
         # <file-name>   ::= <prefix> <middle-name> <suffix>
         # <prefix>      ::= ("dfp" | "itr") "_cia_aberta" ["_"]
@@ -43,23 +53,23 @@ class _MemberNameList:
             except IndexError:
                 raise ZipMemberError(name)
 
-            if   middle_name == '':            self.head_filename                       = name
-            elif middle_name == '_BPA_con':    self.con_filenames[StatementType.BPA]    = name
-            elif middle_name == '_BPA_ind':    self.ind_filenames[StatementType.BPA]    = name
-            elif middle_name == '_BPP_con':    self.con_filenames[StatementType.BPP]    = name
-            elif middle_name == '_BPP_ind':    self.ind_filenames[StatementType.BPP]    = name
-            elif middle_name == '_DFC_MD_con': self.con_filenames[StatementType.DFC_MD] = name
-            elif middle_name == '_DFC_MD_ind': self.ind_filenames[StatementType.DFC_MD] = name
-            elif middle_name == '_DFC_MI_con': self.con_filenames[StatementType.DFC_MI] = name
-            elif middle_name == '_DFC_MI_ind': self.ind_filenames[StatementType.DFC_MI] = name
-            elif middle_name == '_DMPL_con':   self.con_filenames[StatementType.DMPL]   = name
-            elif middle_name == '_DMPL_ind':   self.ind_filenames[StatementType.DMPL]   = name
-            elif middle_name == '_DRA_con':    self.con_filenames[StatementType.DRA]    = name
-            elif middle_name == '_DRA_ind':    self.ind_filenames[StatementType.DRA]    = name
-            elif middle_name == '_DRE_con':    self.con_filenames[StatementType.DRE]    = name
-            elif middle_name == '_DRE_ind':    self.ind_filenames[StatementType.DRE]    = name
-            elif middle_name == '_DVA_con':    self.con_filenames[StatementType.DVA]    = name
-            elif middle_name == '_DVA_ind':    self.ind_filenames[StatementType.DVA]    = name
+            if   middle_name == '':            self.head       = name
+            elif middle_name == '_BPA_con':    self.con.bpa    = name
+            elif middle_name == '_BPA_ind':    self.ind.bpa    = name
+            elif middle_name == '_BPP_con':    self.con.bpp    = name
+            elif middle_name == '_BPP_ind':    self.ind.bpp    = name
+            elif middle_name == '_DFC_MD_con': self.con.dfc_md = name
+            elif middle_name == '_DFC_MD_ind': self.ind.dfc_md = name
+            elif middle_name == '_DFC_MI_con': self.con.dfc_mi = name
+            elif middle_name == '_DFC_MI_ind': self.ind.dfc_mi = name
+            elif middle_name == '_DMPL_con':   self.con.dmpl   = name
+            elif middle_name == '_DMPL_ind':   self.ind.dmpl   = name
+            elif middle_name == '_DRA_con':    self.con.dra    = name
+            elif middle_name == '_DRA_ind':    self.ind.dra    = name
+            elif middle_name == '_DRE_con':    self.con.dre    = name
+            elif middle_name == '_DRE_ind':    self.ind.dre    = name
+            elif middle_name == '_DVA_con':    self.con.dva    = name
+            elif middle_name == '_DVA_ind':    self.ind.dva    = name
             else:
                 raise ZipMemberError(name)
 
@@ -284,27 +294,27 @@ def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DF
             # https://stackoverflow.com/questions/15282651/how-do-i-read-text-files-within-a-zip-file
             return stack.enter_context(io.TextIOWrapper(file.open(filename), encoding='ISO-8859-1'))
         
-        def make_readers(filenames: typing.Mapping[StatementType, str]) -> typing.Dict[StatementType, StatementReader]:
-            return {
-                StatementType.BPA:    BPxReader   (open_file_on_stack(filenames[StatementType.BPA])),
-                StatementType.BPP:    BPxReader   (open_file_on_stack(filenames[StatementType.BPP])),
-                StatementType.DRE:    DRxDVAReader(open_file_on_stack(filenames[StatementType.DRE])),
-                StatementType.DRA:    DRxDVAReader(open_file_on_stack(filenames[StatementType.DRA])),
-                StatementType.DFC_MD: DFCReader   (open_file_on_stack(filenames[StatementType.DFC_MD])),
-                StatementType.DFC_MI: DFCReader   (open_file_on_stack(filenames[StatementType.DFC_MI])),
-                StatementType.DMPL:   DMPLReader  (open_file_on_stack(filenames[StatementType.DMPL])),
-                StatementType.DVA:    DRxDVAReader(open_file_on_stack(filenames[StatementType.DVA]))
-            }
+        def make_readers(filenames: _StatementFileNames) -> typing.List[typing.Tuple[StatementType, StatementReader]]:
+            return [
+                (StatementType.BPA,  BPxReader   (open_file_on_stack(filenames.bpa))),
+                (StatementType.BPP,  BPxReader   (open_file_on_stack(filenames.bpp))),
+                (StatementType.DRE,  DRxDVAReader(open_file_on_stack(filenames.dre))),
+                (StatementType.DRA,  DRxDVAReader(open_file_on_stack(filenames.dra))),
+                (StatementType.DFC,  DFCReader   (open_file_on_stack(filenames.dfc_md))),
+                (StatementType.DFC,  DFCReader   (open_file_on_stack(filenames.dfc_mi))),
+                (StatementType.DMPL, DMPLReader  (open_file_on_stack(filenames.dmpl))),
+                (StatementType.DVA,  DRxDVAReader(open_file_on_stack(filenames.dva)))
+            ]
 
-        head_reader = RegularDocumentHeadReader(open_file_on_stack(namelist.head_filename))
+        head_reader = RegularDocumentHeadReader(open_file_on_stack(namelist.head))
 
         if flag & BalanceFlag.INDIVIDUAL:
-            ind_readers = make_readers(namelist.ind_filenames)
+            ind_readers = make_readers(namelist.ind)
         else:
             ind_readers = {}
 
         if flag & BalanceFlag.CONSOLIDATED:
-            con_readers = make_readers(namelist.con_filenames)
+            con_readers = make_readers(namelist.con)
         else:
             con_readers = {}
 
@@ -321,14 +331,11 @@ def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DF
             def read_statements_mapped_by_type(readers):
                 statements_by_type = collections.defaultdict(dict)
 
-                for stmt_type, stmt_reader in readers.items():
+                for stmt_type, stmt_reader in readers:
                     try:
                         statements = stmt_reader.read(head_batch_id)
                     except (UnexpectedBatch, StopIteration):
                         continue
-
-                    if stmt_type in (StatementType.DFC_MD, StatementType.DFC_MI):
-                        stmt_type = StatementType.DFC
 
                     statements_by_type[stmt_type] = statements
                 
