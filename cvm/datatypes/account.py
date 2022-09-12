@@ -2,13 +2,11 @@ from __future__ import annotations
 import dataclasses
 import decimal
 import typing
-from cvm import datatypes
 
 __all__ = [
+    'BaseAccount',
     'Account',
-    'AccountTuple',
     'DMPLAccount',
-    'DMPLAccountTuple'
 ]
 
 @dataclasses.dataclass(init=True)
@@ -27,9 +25,15 @@ class BaseAccount:
         'is_fixed'
     )
 
-@dataclasses.dataclass(init=True)
+@dataclasses.dataclass(init=False)
 class Account(BaseAccount):
     quantity: decimal.Decimal
+
+    def __init__(self, code: str, name: str, quantity: decimal.Decimal, is_fixed: bool) -> None:
+        self.code     = code
+        self.name     = name
+        self.quantity = quantity
+        self.is_fixed = is_fixed
     
     __slots__ = (
         'quantity',
@@ -269,105 +273,3 @@ class DMPLAccount(BaseAccount):
         'non_controlling_interest',
         'consolidated_equity'
     )
-
-class AccountTuple:
-    __slots__ = ('_currency', '_currency_size', '_accounts')
-
-    def __init__(self, currency: datatypes.Currency, currency_size: datatypes.CurrencySize, accounts: typing.Sequence[Account]):
-        self._currency      = currency
-        self._currency_size = currency_size
-        self._accounts      = tuple(accounts)
-
-    @property
-    def currency(self) -> datatypes.Currency:
-        return self._currency
-
-    @property
-    def currency_size(self) -> datatypes.CurrencySize:
-        return self._currency_size
-
-    def normalized(self) -> AccountTuple:
-        """Returns a copy of `self` with `currency_size` normalized to `CurrencySize.UNIT`."""
-
-        if self.currency_size == datatypes.CurrencySize.UNIT:
-            return self
-        else:
-            if self.currency_size != datatypes.CurrencySize.THOUSAND:
-                raise ValueError(f"unknown currency size '{self.currency_size}'")
-            
-            accounts   = []
-            multiplier = 1000
-
-            for code, name, quantity, is_fixed in self.items():
-                accounts.append(Account(code, name, round(quantity * multiplier), is_fixed))
-
-            return AccountTuple(self.currency, datatypes.CurrencySize.UNIT, accounts)
-
-    def items(self) -> typing.Iterable[typing.Tuple[str, str, decimal.Decimal, bool]]:
-        return ((acc.code, acc.name, acc.quantity, acc.is_fixed) for acc in self)
-
-    def __iter__(self) -> typing.Iterator[Account]:
-        return iter(self._accounts)
-
-    def __getitem__(self, index: int) -> Account:
-        return self._accounts[index]
-
-class DMPLAccountTuple:
-    __slots__ = ('_currency', '_currency_size', '_accounts')
-
-    def __init__(self, currency: datatypes.Currency, currency_size: datatypes.CurrencySize, accounts: typing.Sequence[DMPLAccount]):
-        self._currency      = currency
-        self._currency_size = currency_size
-        self._accounts      = tuple(accounts)
-
-    @property
-    def currency(self) -> datatypes.Currency:
-        return self._currency
-
-    @property
-    def currency_size(self) -> datatypes.CurrencySize:
-        return self._currency_size
-
-    def normalized(self) -> DMPLAccountTuple:
-        """Returns a copy of `self` with `currency_size` normalized to `CurrencySize.UNIT`."""
-
-        if self.currency_size == datatypes.CurrencySize.UNIT:
-            return self
-        else:
-            if self.currency_size != datatypes.CurrencySize.THOUSAND:
-                raise ValueError(f"unknown currency size '{self.currency_size}'")
-            
-            accounts   = []
-            multiplier = 1000
-
-            def normalize(number: typing.Optional[int]) -> typing.Optional[int]:
-                if number is None:
-                    return
-                
-                return round(number * multiplier)
-
-            for dmpl_account in self._accounts:
-                normalized_dmpl_account = dataclasses.replace(
-                    dmpl_account,
-                    share_capital                       = normalize(dmpl_account.share_capital),
-                    capital_reserve_and_treasury_shares = normalize(dmpl_account.capital_reserve_and_treasury_shares),
-                    profit_reserves                     = normalize(dmpl_account.profit_reserves),
-                    unappropriated_retained_earnings    = normalize(dmpl_account.unappropriated_retained_earnings),
-                    other_comprehensive_income          = normalize(dmpl_account.other_comprehensive_income),
-                    controlling_interest                = normalize(dmpl_account.controlling_interest),
-                    non_controlling_interest            = normalize(dmpl_account.non_controlling_interest),
-                    consolidated_equity                 = normalize(dmpl_account.consolidated_equity),
-                )
-                
-                accounts.append(normalized_dmpl_account)
-
-            return DMPLAccountTuple(self.currency, datatypes.CurrencySize.UNIT, accounts)
-
-    def __iter__(self) -> typing.Iterator[DMPLAccount]:
-        return iter(self._accounts)
-
-    def __len__(self) -> int:
-        return len(self._accounts)
-
-    def __getitem__(self, index: int) -> DMPLAccount:
-        return self._accounts[index]

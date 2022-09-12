@@ -12,7 +12,6 @@ from cvm import datatypes
 from cvm.csvio.batch import CSVBatch
 from cvm.csvio.document      import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
 from cvm.csvio.row           import CSVRow
-from cvm.datatypes.account   import Account, AccountTuple
 from cvm.datatypes.currency  import Currency, CurrencySize
 from cvm.datatypes.tax_id    import CNPJ
 from cvm.datatypes.statement import GroupedStatementCollection, StatementType, Statement, DFCMethod, FiscalYearOrder, BPx, DRxDVA, DFC, DMPL
@@ -111,25 +110,16 @@ class StatementReader(RegularDocumentBodyReader):
 
         return stmts
 
-    def read_common(self, row: CSVRow) -> typing.Tuple[Currency, CurrencySize, datetime.date]:
-        return (
-            row.required('MOEDA',        Currency),
-            row.required('ESCALA_MOEDA', CurrencySize)
-        )
-
-    def read_account(self, row: CSVRow) -> Account:
-        return Account(
+    def read_account(self, row: CSVRow) -> datatypes.Account:
+        return datatypes.Account(
             code      = row.required('CD_CONTA',      str),
             name      = row.optional('DS_CONTA',      str),
             quantity  = row.required('VL_CONTA',      decimal.Decimal),
             is_fixed  = row.required('ST_CONTA_FIXA', str) == 'S'
         )
 
-    def read_accounts(self, rows: typing.List[CSVRow]) -> AccountTuple:
-        currency, currency_size = self.read_common(rows[0])
-        accounts = AccountTuple(currency, currency_size, (self.read_account(row) for row in rows))
-
-        return accounts
+    def read_accounts(self, rows: typing.List[CSVRow]) -> typing.List[datatypes.Account]:
+        return [self.read_account(row) for row in rows]
 
     def read_statements(self, batch: CSVBatch) -> typing.List[typing.Any]:
         grouped_rows = collections.defaultdict(list)
@@ -169,6 +159,8 @@ class BPxReader(StatementReader):
 
         return BPx(
             fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            currency          = first_row.required('MOEDA',        Currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
             accounts          = self.read_accounts(rows)
         )
@@ -182,6 +174,8 @@ class DRxDVAReader(StatementReader):
 
         return DRxDVA(
             fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            currency          = first_row.required('MOEDA',        Currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
             period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
             accounts          = self.read_accounts(rows)
@@ -207,6 +201,8 @@ class DFCReader(StatementReader):
 
         return DFC(
             fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            currency          = first_row.required('MOEDA',        Currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
             method            = dfc_method,
             period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
@@ -272,13 +268,13 @@ class DMPLReader(StatementReader):
 
             dmpl_accounts.append(dmpl_account)
 
-        currency, currency_size = self.read_common(first_row)
-
         return DMPL(
             fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            currency          = first_row.required('MOEDA',        Currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
             period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
-            accounts          = datatypes.DMPLAccountTuple(currency, currency_size, dmpl_accounts)
+            accounts          = dmpl_accounts
         )
 
 class BalanceFlag(enum.IntFlag):

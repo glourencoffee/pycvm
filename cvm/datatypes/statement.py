@@ -1,3 +1,4 @@
+from __future__ import annotations
 import dataclasses
 import datetime
 import typing
@@ -41,13 +42,70 @@ class FiscalYearOrder(datatypes.DescriptiveIntEnum):
 @dataclasses.dataclass(init=True)
 class Statement:
     fiscal_year_order: FiscalYearOrder
+    currency: datatypes.Currency
+    currency_size: datatypes.CurrencySize
+    accounts: typing.List[datatypes.BaseAccount]
+
+    def normalized(self) -> Statement:
+        """Returns a copy of `self` with `currency_size` as `CurrencySize.UNIT`."""
+
+        if self.currency_size == datatypes.CurrencySize.UNIT:
+            return dataclasses.replace(self)
+        else:
+            if self.currency_size != datatypes.CurrencySize.THOUSAND:
+                raise ValueError(f"unknown currency size '{self.currency_size}'")
+            
+            normalized_accounts = []
+            multiplier = 1000
+
+            for account in self.accounts:
+                normalized_accounts.append(self.normalize_account(account, multiplier))
+
+            normalized_statement = dataclasses.replace(
+                self,
+                currency_size = datatypes.CurrencySize.UNIT,
+                accounts      = normalized_accounts
+            )
+
+            return normalized_statement
+
+    @staticmethod
+    def normalize_account(account: datatypes.BaseAccount, multiplier: int) -> datatypes.BaseAccount:
+        if isinstance(account, datatypes.Account):
+            return dataclasses.replace(
+                account,
+                quantity = Statement.normalize_quantity(account.quantity, multiplier)
+            )
+
+        elif isinstance(account, datatypes.DMPLAccount):
+            return dataclasses.replace(
+                account,
+                share_capital                       = Statement.normalize_quantity(account.share_capital,                       multiplier),
+                capital_reserve_and_treasury_shares = Statement.normalize_quantity(account.capital_reserve_and_treasury_shares, multiplier),
+                profit_reserves                     = Statement.normalize_quantity(account.profit_reserves,                     multiplier),
+                unappropriated_retained_earnings    = Statement.normalize_quantity(account.unappropriated_retained_earnings,    multiplier),
+                other_comprehensive_income          = Statement.normalize_quantity(account.other_comprehensive_income,          multiplier),
+                controlling_interest                = Statement.normalize_quantity(account.controlling_interest,                multiplier),
+                non_controlling_interest            = Statement.normalize_quantity(account.non_controlling_interest,            multiplier),
+                consolidated_equity                 = Statement.normalize_quantity(account.consolidated_equity,                 multiplier),
+            )
+
+        else:
+            raise ValueError(f'unknown account class: {account.__class__}')
+
+    @staticmethod
+    def normalize_quantity(quantity: typing.Optional[float], multiplier: int) -> typing.Optional[int]:
+        if quantity is None:
+            return None
+        
+        return round(quantity * multiplier)
 
 @dataclasses.dataclass(init=True)
 class BPx(Statement):
     """This data structure is shared between the BPA and BPP statement types."""
 
+    accounts: typing.List[datatypes.Account]
     period_end_date: datetime.date
-    accounts: datatypes.AccountTuple
 
     def __repr__(self) -> str:
         return (
@@ -66,9 +124,9 @@ class DRxDVA(Statement):
     - Statement of Value Added ('Demonstração de Valor Adicionado' or 'DVA')
     """
 
+    accounts: typing.List[datatypes.Account]
     period_start_date: datetime.date
     period_end_date: datetime.date
-    accounts: datatypes.AccountTuple
 
     def __repr__(self) -> str:
         return (
@@ -83,10 +141,10 @@ class DFC(Statement):
     """Cash Flow Statement ('Demonstração de Fluxo de Caixa' or 'DFC')    
     """
 
+    accounts: typing.List[datatypes.Account]
     method: DFCMethod
     period_start_date: datetime.date
     period_end_date: datetime.date
-    accounts: datatypes.AccountTuple
     
     def __repr__(self) -> str:
         return (
@@ -101,9 +159,9 @@ class DFC(Statement):
 class DMPL(Statement):
     """Statement of Changes in Net Equity ('Demonstração das Mutações do Patrimônio Líquido' or 'DMPL')"""
 
+    accounts: typing.List[datatypes.DMPLAccount]
     period_start_date: datetime.date
     period_end_date: datetime.date
-    accounts: datatypes.DMPLAccountTuple
 
     def __repr__(self) -> str:
         return (

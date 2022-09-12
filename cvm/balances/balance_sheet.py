@@ -59,8 +59,8 @@ class BalanceSheet:
 
     @classmethod
     def from_accounts(cls,
-                      bpa_accounts: datatypes.AccountTuple,
-                      bpp_accounts: datatypes.AccountTuple,
+                      bpa_accounts: typing.Sequence[datatypes.Account],
+                      bpp_accounts: typing.Sequence[datatypes.Account],
                       balance_type: datatypes.BalanceType,
                       reference_date: datetime.date
     ) -> BalanceSheet:
@@ -70,13 +70,13 @@ class BalanceSheet:
 
         for bpa_validator, bpp_validator in __validator_pairs__:
             try:
-                bpa_attrs = bpa_validator().validate(bpa_accounts.normalized(), balance_type, reference_date)
+                bpa_attrs = bpa_validator().validate(bpa_accounts, balance_type, reference_date)
             except exceptions.AccountLayoutError as exc:
                 error_str.append(f'{bpa_validator.__name__}: {exc}')
                 continue
             
             try:
-                bpp_attrs = bpp_validator().validate(bpp_accounts.normalized(), balance_type, reference_date)
+                bpp_attrs = bpp_validator().validate(bpp_accounts, balance_type, reference_date)
             except  exceptions.AccountLayoutError as exc:
                 error_str.append(f'{bpp_validator.__name__}: {exc}')
                 continue
@@ -91,8 +91,8 @@ class BalanceSheet:
                         reference_date: datetime.date
     ) -> BalanceSheet:
         return cls.from_accounts(
-            collection.bpa.accounts,
-            collection.bpp.accounts,
+            collection.bpa.normalized().accounts,
+            collection.bpp.normalized().accounts,
             collection.balance_type,
             reference_date
         )
