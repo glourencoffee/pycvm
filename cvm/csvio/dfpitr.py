@@ -237,18 +237,50 @@ class DMPLReader(StatementReader):
             consolidated_equity                 = quantities.get('Patrimônio Líquido Consolidado', None)
         )
 
+    @staticmethod
+    def fix_quantities(quantities: typing.Dict[str, int]) -> typing.Dict[str, int]:
+        # Bugfix for issue #9.
+
+        fixed_quantities = {}
+        prev_column = ''
+
+        for i, (column, quantity) in enumerate(quantities.items()):
+            if i < 3:
+                # Capital Social Integralizado
+                # Reservas de Capital, Opções Outorgadas e Ações em Tesouraria
+                # Reservas de Lucro
+                fixed_quantities[column] = quantity
+
+            elif i == 3:
+                fixed_quantities['Ajustes de Avaliação Patrimonial'] = quantity
+
+            else:
+                fixed_quantities[prev_column] = quantity
+
+            prev_column = column
+
+        return fixed_quantities
+
     def create_statement(self, rows: typing.List[CSVRow]) -> DMPL:
         first_row = rows[0]
 
         last_account  = None
         quantities    = {}
         dmpl_accounts = []
+        should_fix    = False
 
         for row in rows:
-            column  = row.required('COLUNA_DF', str)
+            column  = row.required('COLUNA_DF', str, allow_empty_string=True)
             account = self.read_account(row)
+
+            if column == '':
+                should_fix = True
             
             if last_account is not None and account.name != last_account.name:
+                if should_fix:
+                    quantities = self.fix_quantities(quantities)
+                    should_fix = False
+
                 dmpl_account = self.create_dmpl_account(
                     last_account.name,
                     last_account.code,
@@ -263,6 +295,9 @@ class DMPLReader(StatementReader):
             last_account = account
 
         if last_account is not None:
+            if should_fix:
+                quantities = self.fix_quantities(quantities)
+
             dmpl_account = self.create_dmpl_account(
                 last_account.name,
                 last_account.code,
