@@ -53,7 +53,7 @@ class AccountLayoutValidator:
         raise exceptions.NotImplementedException(self.__class__, 'consolidated_layouts')
 
     def validate(self,
-                 accounts: datatypes.AccountTuple,
+                 accounts: typing.Sequence[datatypes.Account],
                  balance_type: datatypes.BalanceType,
                  reference_date: datetime.date
     ) -> typing.Dict[str, int]:
@@ -86,11 +86,10 @@ class AccountLayoutValidator:
         return
 
     def _validate_layout(self,
-                        accounts: datatypes.AccountTuple,
+                        accounts: typing.Sequence[datatypes.Account],
                         layout: AccountLayout
     ) -> typing.Dict[str, int]:
 
-        accounts = accounts.normalized()
         accounts = iter(accounts)
         attributes = {}
 
@@ -102,7 +101,7 @@ class AccountLayoutValidator:
             # against the layout.
             while True:
                 try:
-                    acc = next(accounts)
+                    acc: datatypes.Account = next(accounts)
                 except StopIteration:
                     raise exceptions.AccountLayoutError(f"missing account data at index {i}: too few accounts)") from None
 

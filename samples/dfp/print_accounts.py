@@ -1,11 +1,12 @@
 import cvm
 import sys
 import time
+import typing
 import pandas as pd
 
-def print_accounts(accounts: cvm.AccountTuple):
+def print_accounts(accounts: typing.List[cvm.Account]):
     columns = ['Código', 'Descrição', 'Quantidade', 'Fixa']
-    data    = [t for t in accounts.items()]
+    data    = [(account.code, account.name, account.quantity, account.is_fixed) for account in accounts]
     df      = pd.DataFrame(data=data, columns=columns)
 
     print(df.to_string())
@@ -18,15 +19,15 @@ def print_collection(collection: cvm.StatementCollection):
 
     print('---------------------')
     print('1 - BPA (', consolidated_text, '):', sep='')
-    print_accounts(collection.bpa.accounts.normalized())
+    print_accounts(collection.bpa.normalized().accounts)
 
     print('---------------------')
     print('2 - BPP (', consolidated_text, '):', sep='')
-    print_accounts(collection.bpp.accounts.normalized())
+    print_accounts(collection.bpp.normalized().accounts)
 
     print('---------------------')
     print('3 - DRE (', consolidated_text, '):', sep='')
-    print_accounts(collection.dre.accounts.normalized())
+    print_accounts(collection.dre.normalized().accounts)
 
 def print_document(dfpitr: cvm.DFPITR):
     print('===============================================')

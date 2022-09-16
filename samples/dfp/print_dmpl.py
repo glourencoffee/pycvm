@@ -3,11 +3,11 @@ import sys
 import time
 import pandas as pd
 
-def print_dmpl(dmpl: cvm.datatypes.DMPL):
-    df = pd.DataFrame(data=dmpl.accounts.normalized())
+def print_dmpl(dmpl: cvm.DMPL):
+    df = pd.DataFrame(data=dmpl.normalized().accounts)
     print(df)
 
-def print_document(dfpitr: cvm.datatypes.DFPITR):
+def print_document(dfpitr: cvm.DFPITR):
     print('===============================================')
     print(dfpitr.company_name, ' (', dfpitr.reference_date, ') (versão: ', dfpitr.version, ')', sep='')
 
@@ -24,7 +24,7 @@ def main():
         print('usage: print_dmpl.py <dfpitr>')
         return 1
 
-    for dfpitr in cvm.csvio.dfpitr_reader(sys.argv[1]):
+    for dfpitr in cvm.dfpitr_reader(sys.argv[1]):
         try:
             print_document(dfpitr)
             time.sleep(2)

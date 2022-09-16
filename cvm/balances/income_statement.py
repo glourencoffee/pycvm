@@ -94,7 +94,7 @@ class IncomeStatement:
 
     @classmethod
     def from_accounts(cls,
-                      dre_accounts: datatypes.AccountTuple,
+                      dre_accounts: typing.Sequence[datatypes.Account],
                       balance_type: datatypes.BalanceType,
                       reference_date: datetime.date
     ) -> IncomeStatement:
@@ -102,7 +102,7 @@ class IncomeStatement:
 
         for dre_validator in __validators__:
             try:
-                attrs = dre_validator().validate(dre_accounts.normalized(), balance_type, reference_date)
+                attrs = dre_validator().validate(dre_accounts, balance_type, reference_date)
             except exceptions.AccountLayoutError as exc:
                 error_strings.append(f'{dre_validator.__name__}: {exc}')
                 continue
@@ -117,7 +117,7 @@ class IncomeStatement:
                         reference_date: datetime.date
     ) -> IncomeStatement:
         return cls.from_accounts(
-            collection.dre.accounts,
+            collection.dre.normalized().accounts,
             collection.balance_type,
             reference_date
         )
