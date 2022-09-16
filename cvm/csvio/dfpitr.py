@@ -210,6 +210,11 @@ class DFCReader(StatementReader):
         )
 
 class DMPLReader(StatementReader):
+    # I know, I know, this is ugly as fuck, but uglier than this
+    # is extracting incorrect data due to CVM's mis-generation of
+    # DFP/ITR files. See issue #9.
+    should_fix_quantities = False
+
     def group_key_fields(self) -> typing.Sequence[str]:
         return ('ORDEM_EXERC', 'DT_INI_EXERC', 'DT_FIM_EXERC')
 
@@ -233,6 +238,30 @@ class DMPLReader(StatementReader):
             consolidated_equity                 = quantities.get('Patrimônio Líquido Consolidado', None)
         )
 
+    @staticmethod
+    def fix_quantities(quantities: typing.Dict[str, int]) -> typing.Dict[str, int]:
+        # Bugfix for issue #9.
+
+        fixed_quantities = {}
+        prev_column = ''
+
+        for i, (column, quantity) in enumerate(quantities.items()):
+            if i < 3:
+                # Capital Social Integralizado
+                # Reservas de Capital, Opções Outorgadas e Ações em Tesouraria
+                # Reservas de Lucro
+                fixed_quantities[column] = quantity
+
+            elif i == 3:
+                fixed_quantities['Ajustes de Avaliação Patrimonial'] = quantity
+
+            else:
+                fixed_quantities[prev_column] = quantity
+
+            prev_column = column
+
+        return fixed_quantities
+
     def create_statement(self, rows: typing.List[CSVRow]) -> DMPL:
         first_row = rows[0]
 
@@ -241,10 +270,13 @@ class DMPLReader(StatementReader):
         dmpl_accounts = []
 
         for row in rows:
-            column  = row.required('COLUNA_DF', str)
+            column  = row.required('COLUNA_DF', str, allow_empty_string=True)
             account = self.read_account(row)
             
             if last_account is not None and account.name != last_account.name:
+                if self.should_fix_quantities:
+                    quantities = self.fix_quantities(quantities)
+
                 dmpl_account = self.create_dmpl_account(
                     last_account.name,
                     last_account.code,
@@ -259,6 +291,9 @@ class DMPLReader(StatementReader):
             last_account = account
 
         if last_account is not None:
+            if self.should_fix_quantities:
+                quantities = self.fix_quantities(quantities)
+
             dmpl_account = self.create_dmpl_account(
                 last_account.name,
                 last_account.code,
@@ -365,6 +400,9 @@ def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DF
                 break
 
             head_batch_id = _row_batch_id(head.cnpj, head.reference_date, head.version)
+
+            # See issue #9.
+            DMPLReader.should_fix_quantities = (head.reference_date.year >= 2020)
 
             # print(head.company_name, 'version:', head.version)
 
