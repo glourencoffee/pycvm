@@ -9,7 +9,7 @@ def print_dmpl(dmpl: cvm.datatypes.DMPL):
 
 def print_document(dfpitr: cvm.datatypes.DFPITR):
     print('===============================================')
-    print(dfpitr.company_name, ' (', dfpitr.reference_date, ') (versão: ', dfpitr.version, ')', sep='')
+    print(dfpitr.company_name, ' (', dfpitr.reference_date, ') (versão: ', dfpitr.version, ', id: ', dfpitr.id, ')', sep='')
 
     for grouped_collection in dfpitr.grouped_collections():
         last = grouped_collection.last
