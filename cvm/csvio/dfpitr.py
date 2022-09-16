@@ -214,6 +214,11 @@ class DFCReader(StatementReader):
         )
 
 class DMPLReader(StatementReader):
+    # I know, I know, this is ugly as fuck, but uglier than this
+    # is extracting incorrect data due to CVM's mis-generation of
+    # DFP/ITR files. See issue #9.
+    should_fix_quantities = False
+
     def group_key_fields(self) -> typing.Sequence[str]:
         return ('ORDEM_EXERC', 'DT_INI_EXERC', 'DT_FIM_EXERC')
 
@@ -267,19 +272,14 @@ class DMPLReader(StatementReader):
         last_account  = None
         quantities    = {}
         dmpl_accounts = []
-        should_fix    = False
 
         for row in rows:
             column  = row.required('COLUNA_DF', str, allow_empty_string=True)
             account = self.read_account(row)
-
-            if column == '':
-                should_fix = True
             
             if last_account is not None and account.name != last_account.name:
-                if should_fix:
+                if self.should_fix_quantities:
                     quantities = self.fix_quantities(quantities)
-                    should_fix = False
 
                 dmpl_account = self.create_dmpl_account(
                     last_account.name,
@@ -295,7 +295,7 @@ class DMPLReader(StatementReader):
             last_account = account
 
         if last_account is not None:
-            if should_fix:
+            if self.should_fix_quantities:
                 quantities = self.fix_quantities(quantities)
 
             dmpl_account = self.create_dmpl_account(
@@ -404,6 +404,9 @@ def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DF
                 break
 
             head_batch_id = _row_batch_id(head.cnpj, head.reference_date, head.version)
+
+            # See issue #9.
+            DMPLReader.should_fix_quantities = (head.reference_date.year >= 2020)
 
             # print(head.company_name, 'version:', head.version)
 
