@@ -317,7 +317,7 @@ class BalanceFlag(enum.IntFlag):
     CONSOLIDATED = 1
     INDIVIDUAL   = 2
 
-def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DFPITR, None, None]:
+def _zip_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DFPITR, None, None]:
     ################################################################################
     # The implementation below tries to read all the CSV files contained in the DFP
     # ZIP file simultaneously, taking advantage of the fact that data in these files
@@ -358,16 +358,17 @@ def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DF
     # Reading files simultaneously, as we're doing, is the fastest and cheapest way,
     # but it also makes code a bit harder to read.
     ################################################################################
-    namelist = _MemberNameList(iter(file.namelist()))
+    namelist = _MemberNameList(iter(archive.namelist()))
 
     # Argh, too many files...
     # https://stackoverflow.com/questions/4617034/how-can-i-open-multiple-files-using-with-open-in-python
     with contextlib.ExitStack() as stack:
         
         def open_file_on_stack(filename: str):
-            # Files must be wrapped by `TextIOWrapper`, because `ZipFile.open()` opens files as streams of bytes.
-            # https://stackoverflow.com/questions/15282651/how-do-i-read-text-files-within-a-zip-file
-            return stack.enter_context(io.TextIOWrapper(file.open(filename), encoding='ISO-8859-1'))
+            member = archive.open(filename, mode='r')
+            stream = io.TextIOWrapper(member, encoding='iso-8859-1')
+
+            return stack.enter_context(stream)
         
         def make_readers(filenames: _StatementFileNames) -> typing.List[typing.Tuple[StatementType, StatementReader]]:
             return [
@@ -466,6 +467,6 @@ def dfpitr_reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, st
 ) -> typing.Generator[DFPITR, None, None]:
 
     if not isinstance(file, zipfile.ZipFile):
-        file = zipfile.ZipFile(file)
+        file = zipfile.ZipFile(file, mode='r')
 
     return _zip_reader(file, flag)

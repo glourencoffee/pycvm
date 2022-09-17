@@ -337,12 +337,15 @@ class ShareholderDepartmentReader(CommonReader):
 
         return shareholder_dept
 
-def _zip_reader(file: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
-    namelist = _MemberNameList(iter(file.namelist()))
+def _zip_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
+    namelist = _MemberNameList(iter(archive.namelist()))
 
     with contextlib.ExitStack() as stack:
         def open_on_stack(filename: str):
-            return stack.enter_context(io.TextIOWrapper(file.open(filename), encoding='ISO-8859-1'))
+            member = archive.open(filename, mode='r')
+            stream = io.TextIOWrapper(member, encoding='iso-8859-1')
+            
+            return stack.enter_context(stream)
 
         head_reader              = RegularDocumentHeadReader        (open_on_stack(namelist.head_filename))
         address_reader           = AddressReader                    (open_on_stack(namelist.address_filename))
@@ -444,6 +447,6 @@ def _zip_reader(file: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, 
 
 def fca_reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str]) -> typing.Generator[datatypes.FCA, None, None]:
     if not isinstance(file, zipfile.ZipFile):
-        file = zipfile.ZipFile(file)
+        file = zipfile.ZipFile(file, mode='r')
 
     return _zip_reader(file)
