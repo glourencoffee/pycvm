@@ -13,7 +13,7 @@ class Address:
     district: str
     city: str
     state: typing.Union[datatypes.FederatedState, str]
-    country: datatypes.Country
+    country: typing.Optional[datatypes.Country]
     postal_code: int
 
     __slots__ = (
