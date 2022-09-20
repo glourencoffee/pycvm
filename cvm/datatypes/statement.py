@@ -186,19 +186,33 @@ class StatementCollection:
             III – demonstração dos fluxos de caixa elaborada pelo método direto; e\n
             IV – notas explicativas."
 
+    Although the above holds true for most documents, income and cash flow
+    statements are sometimes not given. One reason for that is having no
+    financial movements in a period. This is why the properties `dre` and
+    `dfc` are optional.
+
+    Likewise, the balance sheet is mostly present, but there are also
+    cases when either a BPA or BPP is not given. One reason for that
+    is a company that has just started its business activities and has
+    no balances for the last fiscal year. For example, if a company was
+    created in the year of 2016, it will have no balance sheet for 2015,
+    since there was no activity in 2015, but it may still provide a BPA
+    or BPP. In case it provides a BPA or BPP, it is often filled with zero
+    balances.
+
     Note that Item IV is not present in DFP/ITR files, since DFP/ITR only
     contain financial statements.
     
-    Although Item III of that Article says that companies should send their
-    cash flow statements using the direct method, what happens in practice is
-    that most companies use the indirect method, with very few companies using
-    the direct method. Thus, this class requires the three kinds of statements
-    upon construction, and the cash flow statement can be of any kind.
+    Also note that although Item III of that Article says that companies
+    should send their cash flow statements using the direct method, what
+    happens in practice is that most companies use the indirect method,
+    with very few companies using the direct method. Thus, the cash flow
+    statement can be of any kind.
     """
 
     def __init__(self,
                  balance_type: BalanceType,
-                 statements_by_type: typing.Dict[StatementType, Statement],
+                 statements: typing.Dict[StatementType, Statement],
                  extra_dre: typing.Optional[DRxDVA],
                  extra_dra: typing.Optional[DRxDVA]
     ) -> None:
@@ -206,16 +220,17 @@ class StatementCollection:
         self._statements = {}
 
         try:
-            for stmt_type in (StatementType.BPA, StatementType.BPP, StatementType.DRE, StatementType.DFC):
-                self._statements[stmt_type] = statements_by_type[stmt_type]
+            for stmt_type in (StatementType.BPA, StatementType.BPP):
+                self._statements[stmt_type] = statements[stmt_type]
 
         except KeyError as exc:
             stmt_type: StatementType = exc.args[0]
 
-            raise KeyError(f'missing {stmt_type.name}') from None
+            # 'missing (individual|consolidated) (BPA|BPP)'
+            raise KeyError(f'missing {balance_type.name.lower()} {stmt_type.name}') from None
 
-        for stmt_type in (StatementType.DRA, StatementType.DMPL, StatementType.DVA):
-            self._statements[stmt_type] = statements_by_type.get(stmt_type, None)
+        for stmt_type in (StatementType.DRE, StatementType.DRA, StatementType.DFC, StatementType.DMPL, StatementType.DVA):
+            self._statements[stmt_type] = statements.get(stmt_type, None)
 
         self._extra_dre = extra_dre
         self._extra_dra = extra_dra
@@ -233,7 +248,7 @@ class StatementCollection:
         return self.statement(StatementType.BPP)
 
     @property
-    def dre(self) -> DRxDVA:
+    def dre(self) -> typing.Optional[DRxDVA]:
         return self.statement(StatementType.DRE)
 
     @property
@@ -245,7 +260,7 @@ class StatementCollection:
         return self.statement(StatementType.DMPL)
 
     @property
-    def dfc(self) -> DFC:
+    def dfc(self) -> typing.Optional[DFC]:
         return self.statement(StatementType.DFC)
 
     @property
@@ -291,20 +306,53 @@ class GroupedStatementCollection:
     while providing a short-and-simple syntax for accessing the two types of
     fiscal year order, the last fiscal year and the previous fiscal year, by
     the properties `last` and `previous`, respectively.
+
+    Note that some `DFPITR` documents only have statements for the last fiscal
+    year, while some other have it for both the last and previous fiscal years.
+    For example, it happens in the DFP of 2010 to have companies with statements
+    of 2010 (`last`) as well as 2009 (`previous`), but it also has companies with
+    statements only of 2010, in which case `previous` is None.
     """
 
     __slots__= ('_prev', '_last')
 
-    def __init__(self,
-                 balance_type: BalanceType,
-                 statements_by_type: typing.Dict[StatementType, typing.List[Statement]]
-    ) -> None:
-        last_fy_stmts  = {}
-        prev_fy_stmts  = {}
-        last_dre_extra = None
-        last_dra_extra = None
-        prev_dre_extra = None
-        prev_dra_extra = None
+    @staticmethod
+    def from_dfp_statements(balance_type: BalanceType, 
+                            statements: typing.Dict[StatementType, typing.List[Statement]]
+    ) -> GroupedStatementCollection:
+
+        def is_extra_drx(stmt: DRxDVA):
+            # Unlike ITR documents, DFP documents don't have extra DRE/DRA
+            # statements for each fiscal year order, so this function always
+            # returns False.
+            # 
+            # What may happen, however, is that DRE statements coming from a
+            # DFP may have a period smaller than one year. For example, in the
+            # DFP of 2010, the individual DRE by company "SAAG INVESTIMENTOS S.A."
+            # goes from 2010-02-25 to 2010-12-31. It is a DRE that only has
+            # accounts for the last fiscal year, thus making `previous` a None.
+            #
+            # Another example from the same DFP is the individual DRE by
+            # company "BERNA PARTICIPAÇÕES SA", which goes from 2010-01-01
+            # to 2010-12-31 for the last fiscal year, but whose balances
+            # for the previous fiscal year goes from 2009-09-01 to 2009-12-31.
+            # In other words, this DRE reports balances for the last quarter
+            # of the previous year, rather than balances for the whole previous
+            # year.
+            #
+            # The conclusion is that not every DRE from a DFP will have a date
+            # range from 01 January to 31 December, be it for the last fiscal
+            # year or for the previous fiscal year. Fortunately, though, no
+            # more than two DRE statements are found in a DFP document.
+
+            return False
+
+        return GroupedStatementCollection._from_statements(balance_type, statements, extra_drx_checker=is_extra_drx)
+
+    @staticmethod
+    def from_itr_statements(balance_type: BalanceType,
+                            statements: typing.Dict[StatementType, typing.List[Statement]]
+    ) -> GroupedStatementCollection:
 
         def is_extra_drx(stmt: DRxDVA):
             # ITR documents may have more than one DRE/DRA statement for
@@ -317,9 +365,6 @@ class GroupedStatementCollection:
             #   - 2009-04-01 to 2009-06-30 (previous fiscal year, second quarter)
             #   - 2009-01-01 to 2009-06-30 (previous fiscal year, first semester)
             #
-            # We check for `days < 360` so that we don't mistakenly
-            # consider a DRE/DRA coming from a DFP document as "extra".
-            #
             # Note that this doesn't apply to DVA documents, as they
             # normally cover up a period that is more than a quarter.
             # For example, a DVA from 2010-01-01 to 2010-06-30 is just
@@ -328,44 +373,72 @@ class GroupedStatementCollection:
 
             days = (stmt.period_end_date - stmt.period_start_date).days
 
-            return days > 91 and days < 360
+            return days > 91
 
-        for stmt_type, stmts in statements_by_type.items():
+        return GroupedStatementCollection._from_statements(balance_type, statements, extra_drx_checker=is_extra_drx)
+
+    @staticmethod
+    def _from_statements(balance_type: BalanceType,
+                         statements: typing.Dict[StatementType, typing.List[Statement]],
+                         extra_drx_checker: typing.Callable[[DRxDVA], bool]
+    ) -> GroupedStatementCollection:
+
+        last_fy_stmts  = {}
+        prev_fy_stmts  = {}
+        last_dre_extra = None
+        last_dra_extra = None
+        prev_dre_extra = None
+        prev_dra_extra = None
+
+        for stmt_type, stmts in statements.items():
             is_dre = (stmt_type == StatementType.DRE)
             is_dra = (stmt_type == StatementType.DRA)
 
             for stmt in stmts:
                 if stmt.fiscal_year_order == FiscalYearOrder.LAST:
-                    if is_dre and last_dre_extra is None and is_extra_drx(stmt):
+                    if is_dre and last_dre_extra is None and extra_drx_checker(stmt):
                         last_dre_extra = stmt
 
-                    elif is_dra and last_dra_extra is None and is_extra_drx(stmt):
+                    elif is_dra and last_dra_extra is None and extra_drx_checker(stmt):
                         last_dra_extra = stmt
 
                     elif stmt_type not in last_fy_stmts:
                         last_fy_stmts[stmt_type] = stmt
 
                     else:
-                        print('unknown extra (last) statement of type ', stmt_type, ': ', stmt, sep='')
+                        print('Ignoring unknown extra (last) statement of type ', stmt_type.name, ': ', stmt, sep='')
 
                 elif stmt.fiscal_year_order == FiscalYearOrder.SECOND_TO_LAST:
-                    if is_dre and prev_dre_extra is None and is_extra_drx(stmt):
+                    if is_dre and prev_dre_extra is None and extra_drx_checker(stmt):
                         prev_dre_extra = stmt
 
-                    elif is_dra and prev_dra_extra is None and is_extra_drx(stmt):
+                    elif is_dra and prev_dra_extra is None and extra_drx_checker(stmt):
                         prev_dra_extra = stmt
 
                     elif stmt_type not in prev_fy_stmts:
                         prev_fy_stmts[stmt_type] = stmt
 
                     else:
-                        print('unknown extra (previous) statement of type ', stmt_type, ': ', stmt, sep='')
+                        print('Ignoring unknown extra (previous) statement of type ', stmt_type.name, ': ', stmt, sep='')
 
-        self._last = StatementCollection(balance_type, last_fy_stmts, last_dre_extra, last_dra_extra)
-        self._prev = StatementCollection(balance_type, prev_fy_stmts, prev_dre_extra, prev_dra_extra)
+        # print('making _last')
+        last = StatementCollection(balance_type, last_fy_stmts, last_dre_extra, last_dra_extra)
+
+        if len(prev_fy_stmts) > 0:
+            # print('making _prev, prev_dre_extra=', (prev_dre_extra is not None))
+            prev = StatementCollection(balance_type, prev_fy_stmts, prev_dre_extra, prev_dra_extra)
+        else:
+            # print('_prev is None')
+            prev = None
+
+        return GroupedStatementCollection(last=last, previous=prev)
+
+    def __init__(self, last: StatementCollection, previous: typing.Optional[StatementCollection]) -> None:
+        self._last = last
+        self._prev = previous
 
     @property
-    def previous(self) -> StatementCollection:
+    def previous(self) -> typing.Optional[StatementCollection]:
         return self._prev
 
     @property
