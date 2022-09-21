@@ -77,7 +77,7 @@ class _MemberNameList:
             else:
                 raise ZipMemberError(name)
 
-def _row_batch_id(cnpj: CNPJ, reference_date: datetime.date, version: int) -> int:
+def _make_row_batch_id(cnpj: CNPJ, reference_date: datetime.date, version: int) -> int:
     """Calculates the row batch id of a DFP file based on the value of repeated fields.
     
     A CSV file of a DFP file has at least three fields:
@@ -102,7 +102,7 @@ class StatementReader(RegularDocumentBodyReader):
         reference_date = row.required('DT_REFER', date_from_string)
         version        = row.required('VERSAO',   int)
 
-        return _row_batch_id(cnpj, reference_date, version)
+        return _make_row_batch_id(cnpj, reference_date, version)
 
     def read(self, expected_batch_id: int):
         batch = self.read_expected_batch(expected_batch_id)
@@ -317,6 +317,41 @@ class BalanceFlag(enum.IntFlag):
     CONSOLIDATED = 1
     INDIVIDUAL   = 2
 
+def _open_zip_member_on_stack(stack: contextlib.ExitStack, archive: zipfile.ZipFile, filename: str):
+    member = archive.open(filename, mode='r')
+    stream = io.TextIOWrapper(member, encoding='iso-8859-1')
+
+    return stack.enter_context(stream)
+
+def _make_readers(stack: contextlib.ExitStack,
+                  archive: zipfile.ZipFile,
+                  filenames: _StatementFileNames
+) -> typing.List[typing.Tuple[StatementType, StatementReader]]:
+
+    return [
+        (StatementType.BPA,  BPxReader   (_open_zip_member_on_stack(stack, archive, filenames.bpa))),
+        (StatementType.BPP,  BPxReader   (_open_zip_member_on_stack(stack, archive, filenames.bpp))),
+        (StatementType.DRE,  DRxDVAReader(_open_zip_member_on_stack(stack, archive, filenames.dre))),
+        (StatementType.DRA,  DRxDVAReader(_open_zip_member_on_stack(stack, archive, filenames.dra))),
+        (StatementType.DFC,  DFCReader   (_open_zip_member_on_stack(stack, archive, filenames.dfc_md))),
+        (StatementType.DFC,  DFCReader   (_open_zip_member_on_stack(stack, archive, filenames.dfc_mi))),
+        (StatementType.DMPL, DMPLReader  (_open_zip_member_on_stack(stack, archive, filenames.dmpl))),
+        (StatementType.DVA,  DRxDVAReader(_open_zip_member_on_stack(stack, archive, filenames.dva)))
+    ]
+
+def _read_all_statements(batch_id: int, readers: typing.List[typing.Tuple[StatementType, StatementReader]]) -> typing.Dict[StatementType, Statement]:
+    all_statements = collections.defaultdict(dict)
+
+    for stmt_type, stmt_reader in readers:
+        try:
+            statements = stmt_reader.read(batch_id)
+        except (UnexpectedBatch, StopIteration):
+            continue
+
+        all_statements[stmt_type] = statements
+    
+    return all_statements
+
 def _zip_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DFPITR, None, None]:
     ################################################################################
     # The implementation below tries to read all the CSV files contained in the DFP
@@ -363,34 +398,15 @@ def _zip_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator
     # Argh, too many files...
     # https://stackoverflow.com/questions/4617034/how-can-i-open-multiple-files-using-with-open-in-python
     with contextlib.ExitStack() as stack:
-        
-        def open_file_on_stack(filename: str):
-            member = archive.open(filename, mode='r')
-            stream = io.TextIOWrapper(member, encoding='iso-8859-1')
-
-            return stack.enter_context(stream)
-        
-        def make_readers(filenames: _StatementFileNames) -> typing.List[typing.Tuple[StatementType, StatementReader]]:
-            return [
-                (StatementType.BPA,  BPxReader   (open_file_on_stack(filenames.bpa))),
-                (StatementType.BPP,  BPxReader   (open_file_on_stack(filenames.bpp))),
-                (StatementType.DRE,  DRxDVAReader(open_file_on_stack(filenames.dre))),
-                (StatementType.DRA,  DRxDVAReader(open_file_on_stack(filenames.dra))),
-                (StatementType.DFC,  DFCReader   (open_file_on_stack(filenames.dfc_md))),
-                (StatementType.DFC,  DFCReader   (open_file_on_stack(filenames.dfc_mi))),
-                (StatementType.DMPL, DMPLReader  (open_file_on_stack(filenames.dmpl))),
-                (StatementType.DVA,  DRxDVAReader(open_file_on_stack(filenames.dva)))
-            ]
-
-        head_reader = RegularDocumentHeadReader(open_file_on_stack(namelist.head))
+        head_reader = RegularDocumentHeadReader(_open_zip_member_on_stack(stack, archive, namelist.head))
 
         if flag & BalanceFlag.INDIVIDUAL:
-            ind_readers = make_readers(namelist.ind)
+            ind_readers = _make_readers(stack, archive, namelist.ind)
         else:
             ind_readers = {}
 
         if flag & BalanceFlag.CONSOLIDATED:
-            con_readers = make_readers(namelist.con)
+            con_readers = _make_readers(stack, archive, namelist.con)
         else:
             con_readers = {}
 
@@ -400,53 +416,46 @@ def _zip_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator
             except StopIteration:
                 break
 
-            head_batch_id = _row_batch_id(head.cnpj, head.reference_date, head.version)
+            head_batch_id = _make_row_batch_id(head.cnpj, head.reference_date, head.version)
 
             # See issue #9.
             DMPLReader.should_fix_quantities = (head.reference_date.year >= 2020)
 
-            # print(head.company_name, 'version:', head.version)
-
-            def read_statements_mapped_by_type(readers):
-                statements_by_type = collections.defaultdict(dict)
-
-                for stmt_type, stmt_reader in readers:
-                    try:
-                        statements = stmt_reader.read(head_batch_id)
-                    except (UnexpectedBatch, StopIteration):
-                        continue
-
-                    statements_by_type[stmt_type] = statements
-                
-                return statements_by_type
-
-            ind_statements = read_statements_mapped_by_type(ind_readers)
-            con_statements = read_statements_mapped_by_type(con_readers)
+            ind_statements = _read_all_statements(head_batch_id, ind_readers)
+            con_statements = _read_all_statements(head_batch_id, con_readers)
 
             try:
                 if len(ind_statements) > 0:
                     # If at least one statement was read, all others must have been too.
-                    individual = GroupedStatementCollection(datatypes.BalanceType.INDIVIDUAL, ind_statements)
+                    if head.type == datatypes.DocumentType.DFP:
+                        individual = GroupedStatementCollection.from_dfp_statements(datatypes.BalanceType.INDIVIDUAL, ind_statements)
+                    else:
+                        individual = GroupedStatementCollection.from_itr_statements(datatypes.BalanceType.INDIVIDUAL, ind_statements)
                 else:
                     # No statement was read. That means we have processed either:
                     # 1) An old version document that has no statements; or
-                    # 2) A document that has individual statements only.
+                    # 2) A document that has only consolidated statements.
                     individual = None
 
+            except KeyError as exc:
+                print('Skipping individual balances of ', head.type.name, ' document #', head.id, " ('", head.company_name, "' version ", head.version, '): ', exc, sep='')
+                individual = None
+
+            try:
                 if len(con_statements) > 0:
-                    consolidated = GroupedStatementCollection(datatypes.BalanceType.CONSOLIDATED, con_statements)
+                    if head.type == datatypes.DocumentType.DFP:
+                        consolidated = GroupedStatementCollection.from_dfp_statements(datatypes.BalanceType.CONSOLIDATED, con_statements)
+                    else:
+                        consolidated = GroupedStatementCollection.from_itr_statements(datatypes.BalanceType.CONSOLIDATED, con_statements)
                 else:
+                    # No statement was read. That means we have processed either:
+                    # 1) An old version document that has no statements; or
+                    # 2) A document that has only individual statements.
                     consolidated = None
 
             except KeyError as exc:
-                # TODO: Throwing exceptions stops yielding further documents.
-                #       Maybe store all exceptions and throw them in one go later?
-                print(
-                    f"failed to read {head.type.name} statements from document #{head.id} "
-                    f"('{head.company_name}' version {head.version}): {exc}"
-                )
-
-                continue
+                print('Skipping consolidated balances of ', head.type.name, ' document #', head.id, " ('", head.company_name, "' version ", head.version, '): ', exc, sep='')
+                consolidated = None
 
             yield DFPITR(
                 cnpj           = head.cnpj,
