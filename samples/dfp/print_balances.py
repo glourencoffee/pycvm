@@ -3,6 +3,8 @@ import sys
 import cvm
 import pandas as pd
 
+missing_cvm_codes = []
+
 def print_dfpitr(dfpitr: cvm.DFPITR):
     print('=================================')
     print(dfpitr.company_name, ' (', dfpitr.reference_date, ', versão: ', dfpitr.version, ')', sep='')
@@ -25,6 +27,9 @@ def print_dfpitr(dfpitr: cvm.DFPITR):
         print(pd.DataFrame([income_stmt]).transpose().to_string(header=False))
     except cvm.AccountLayoutError as exc:
         print('erro:', exc)
+    except ValueError as exc:
+        print(exc)
+        missing_cvm_codes.append(dfpitr.cvm_code)
 
 def main():
     if len(sys.argv) < 2:
@@ -38,6 +43,12 @@ def main():
 
     except KeyboardInterrupt:
         pass
+    else:
+        if len(missing_cvm_codes) > 0:
+            print('Could not generate balances for the following companies:')
+        
+            for cvm_code in missing_cvm_codes:
+                print(cvm_code)
 
     return 0
 
