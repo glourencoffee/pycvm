@@ -1,5 +1,5 @@
 __pycache__
 .vscode
-cvm.egg-info
+pycvm.egg-info
 build
 dist

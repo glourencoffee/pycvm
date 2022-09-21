@@ -4,7 +4,7 @@ import versioneer
 with open('README_en_US.md', mode='r', encoding='utf-8') as f:
     readme_en_us = f.read()
 
-setup(name                          = 'cvm',
+setup(name                          = 'pycvm',
       version                       = versioneer.get_version(),
       cmdclass                      = versioneer.get_cmdclass(),
       description                   = 'Python library for processing data from CVM',
