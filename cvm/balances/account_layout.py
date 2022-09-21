@@ -1,11 +1,39 @@
+from __future__ import annotations
 import datetime
+import enum
 import typing
-from cvm import exceptions, datatypes
+from cvm.balances.industrial.cvm_codes import cvm_codes as industrial_cvm_codes
+from cvm.balances.financial.cvm_codes  import cvm_codes as financial_cvm_codes
+from cvm.balances.insurance.cvm_codes  import cvm_codes as insurance_cvm_codes
+from cvm                               import exceptions, datatypes
 
 __all__ = [
+    'AccountLayoutType',
     'AccountLayout',
-    'AccountLayoutValidator'
+    'AccountLayoutValidator',
+    'industrial_cvm_codes',
+    'financial_cvm_codes',
+    'insurance_cvm_codes'
 ]
+
+class AccountLayoutType(enum.IntEnum):
+    INDUSTRIAL = 0
+    FINANCIAL  = 1
+    INSURANCE  = 2
+
+    @staticmethod
+    def from_cvm_code(cvm_code: str) -> AccountLayoutType:
+        if cvm_code in industrial_cvm_codes():
+            return AccountLayoutType.INDUSTRIAL
+
+        elif cvm_code in financial_cvm_codes():
+            return AccountLayoutType.FINANCIAL
+        
+        elif cvm_code in insurance_cvm_codes():
+            return AccountLayoutType.INSURANCE
+
+        else:
+            raise ValueError(f'no account layout was found for CVM code {cvm_code}')
 
 class AccountLayout:
     __slots__ = (
@@ -96,8 +124,9 @@ class AccountLayoutValidator:
         self._prepare()
 
         for i, (expected_code, expected_name, attr) in enumerate(layout):
+
             # Loop through accounts so as to "consume" non-fixed, greater-level ones,
-            # as only fixed accounts whose level is <= `max_layout_level` are compared
+            # as only fixed accounts whose level is <= `layout.max_level` are compared
             # against the layout.
             while True:
                 try:
@@ -107,9 +136,9 @@ class AccountLayoutValidator:
 
                 if acc.is_fixed and acc.level <= layout.max_level:
                     if acc.code != expected_code:
-                        raise exceptions.AccountLayoutError(f"invalid account code '{acc.code}' at index {i} (expected: '{expected_code}')")
-                    elif acc.name != expected_name:
-                        raise exceptions.AccountLayoutError(f"invalid account name '{acc.name}' at index {i} (expected: '{expected_name}')")
+                        raise exceptions.AccountLayoutError(
+                            f"invalid account code '{acc.code}' - '{acc.name}' at index {i} (expected: '{expected_code}' - '{expected_name}')"
+                        )
 
                     if attr is not None:
                         attributes[attr] = int(acc.quantity)
