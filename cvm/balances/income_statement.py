@@ -6,16 +6,11 @@ from cvm                         import datatypes, exceptions
 from cvm.balances.industrial.dre import IndustrialDREValidator
 from cvm.balances.financial.dre  import FinancialDREValidator
 from cvm.balances.insurance.dre  import InsuranceDREValidator
+from cvm.balances.account_layout import AccountLayoutType
 
 __all__ = [
     'IncomeStatement'
 ]
-
-__validators__ = (
-    IndustrialDREValidator,
-    FinancialDREValidator,
-    InsuranceDREValidator
-)
 
 @dataclasses.dataclass(init=True)
 class IncomeStatement:
@@ -94,29 +89,38 @@ class IncomeStatement:
 
     @classmethod
     def from_accounts(cls,
+                      layout_type: AccountLayoutType,
                       dre_accounts: typing.Sequence[datatypes.Account],
                       balance_type: datatypes.BalanceType,
                       reference_date: datetime.date
     ) -> IncomeStatement:
-        error_strings = []
+        if layout_type == AccountLayoutType.INDUSTRIAL:
+            dre_validator = IndustrialDREValidator()
 
-        for dre_validator in __validators__:
-            try:
-                attrs = dre_validator().validate(dre_accounts, balance_type, reference_date)
-            except exceptions.AccountLayoutError as exc:
-                error_strings.append(f'{dre_validator.__name__}: {exc}')
-                continue
-            else:
-                return cls(**attrs)
+        elif layout_type == AccountLayoutType.FINANCIAL:
+            dre_validator = FinancialDREValidator()
         
-        raise exceptions.AccountLayoutError(f'invalid DRE: {error_strings}')
+        elif layout_type == AccountLayoutType.INSURANCE:
+            dre_validator = InsuranceDREValidator()
+
+        else:
+            raise ValueError(f'invalid AccountLayoutType {layout_type}')
+        
+        try:
+            attrs = dre_validator.validate(dre_accounts, balance_type, reference_date)
+        except exceptions.AccountLayoutError as exc:
+            raise exceptions.AccountLayoutError(f'{dre_validator.__class__.__name__} error: {exc}') from None
+        else:
+            return cls(**attrs)
 
     @classmethod
     def from_collection(cls,
+                        layout_type: AccountLayoutType,
                         collection: datatypes.StatementCollection,
                         reference_date: datetime.date
     ) -> IncomeStatement:
         return cls.from_accounts(
+            layout_type,
             collection.dre.normalized().accounts,
             collection.balance_type,
             reference_date
@@ -133,4 +137,8 @@ class IncomeStatement:
         if grouped_collection is None:
             raise ValueError(f'{dfpitr} does not have a grouped collection for balance type {balance_type}')
 
-        return cls.from_collection(grouped_collection[fiscal_year_order], dfpitr.reference_date)
+        return cls.from_collection(
+            AccountLayoutType.from_cvm_code(dfpitr.cvm_code),
+            grouped_collection[fiscal_year_order],
+            dfpitr.reference_date
+        )
