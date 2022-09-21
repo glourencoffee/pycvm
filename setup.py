@@ -1,7 +1,7 @@
 from setuptools import setup
 import versioneer
 
-with open('README_en_US.md') as f:
+with open('README_en_US.md', mode='r', encoding='utf-8') as f:
     readme_en_us = f.read()
 
 setup(name                          = 'cvm',
