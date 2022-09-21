@@ -7,7 +7,7 @@ missing_cvm_codes = []
 
 def print_dfpitr(dfpitr: cvm.DFPITR):
     print('=================================')
-    print(dfpitr.company_name, ' (', dfpitr.reference_date, ', versão: ', dfpitr.version, ')', sep='')
+    print(dfpitr.company_name, ' (#', dfpitr.id, ', ', dfpitr.reference_date, ', versão: ', dfpitr.version, ')', sep='')
 
     if dfpitr.consolidated is None:
         print('o DFP/ITR não tem balanço consolidado')
