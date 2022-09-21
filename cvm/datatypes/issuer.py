@@ -3,6 +3,12 @@ import typing
 import datetime
 from cvm import datatypes
 
+__all__ = [
+    'IssuerStatus',
+    'IssuerAddressType',
+    'IssuerCompany'
+]
+
 class IssuerStatus(datatypes.DescriptiveIntEnum):
     PRE_OPERATIONAL_PHASE           = (1, 'Fase Pré-Operacional')
     OPERATIONAL_PHASE               = (2, 'Fase Operacional')
@@ -54,10 +60,10 @@ class IssuerCompany:
     cvm_registration_status_started: datetime.date
     """(1.11) 'Data de início da situação do registro na CVM'"""
 
-    home_country: datatypes.Country
+    home_country: typing.Optional[datatypes.Country]
     """(1.12) 'País de origem'"""
 
-    securities_custody_country: datatypes.Country
+    securities_custody_country: typing.Optional[datatypes.Country]
     """(1.13) 'País em que os valores mobiliários estão custodiados'"""
 
     trading_admissions: typing.Tuple[datatypes.TradingAdmission]

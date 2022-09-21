@@ -1,5 +1,9 @@
 from cvm import datatypes
 
+__all__ = [
+    'ControllingInterest'
+]
+
 class ControllingInterest(datatypes.DescriptiveIntEnum):
     GOVERNMENTAL         = (1, 'Estatal')
     GOVERNMENTAL_HOLDING = (2, 'Estatal Holding')

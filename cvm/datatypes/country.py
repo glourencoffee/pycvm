@@ -1,5 +1,9 @@
 from cvm import datatypes
 
+__all__ = [
+    'Country'
+]
+
 class Country(datatypes.DescriptiveIntEnum):
     AF = (1,   'Afeganistão')
     ZA = (2,   'África do Sul')
@@ -46,7 +50,7 @@ class Country(datatypes.DescriptiveIntEnum):
     CL = (43,  'Chile')
     CN = (44,  'China')
     CY = (45,  'Chipre')
-    SG = (46,  'Cingapura')
+    SG = (46,  'Singapura')
     CO = (47,  'Colômbia')
     CG = (48,  'Congo')
     KP = (49,  'Coréia do Norte')

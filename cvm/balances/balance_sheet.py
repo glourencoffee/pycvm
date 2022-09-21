@@ -9,13 +9,12 @@ from cvm.balances.financial.bpa  import FinancialBPAValidator
 from cvm.balances.financial.bpp  import FinancialBPPValidator
 from cvm.balances.insurance.bpa  import InsuranceBPAValidator
 from cvm.balances.insurance.bpp  import InsuranceBPPValidator
+from cvm.balances.account_layout import AccountLayoutType
 from cvm                         import datatypes, exceptions
 
-__validator_pairs__ = (
-    (IndustrialBPAValidator, IndustrialBPPValidator),
-    (FinancialBPAValidator,  FinancialBPPValidator),
-    (InsuranceBPAValidator,  InsuranceBPPValidator)
-)
+__all__ = [
+    'BalanceSheet'
+]
 
 @dataclasses.dataclass(init=True)
 class BalanceSheet:
@@ -55,40 +54,52 @@ class BalanceSheet:
 
     @classmethod
     def from_accounts(cls,
-                      bpa_accounts: datatypes.AccountTuple,
-                      bpp_accounts: datatypes.AccountTuple,
+                      layout_type: AccountLayoutType,
+                      bpa_accounts: typing.Sequence[datatypes.Account],
+                      bpp_accounts: typing.Sequence[datatypes.Account],
                       balance_type: datatypes.BalanceType,
                       reference_date: datetime.date
     ) -> BalanceSheet:
+        if layout_type == AccountLayoutType.INDUSTRIAL:
+            bpa_validator = IndustrialBPAValidator()
+            bpp_validator = IndustrialBPPValidator()
+
+        elif layout_type == AccountLayoutType.FINANCIAL:
+            bpa_validator = FinancialBPAValidator()
+            bpp_validator = FinancialBPPValidator()
+        
+        elif layout_type == AccountLayoutType.INSURANCE:
+            bpa_validator = InsuranceBPAValidator()
+            bpp_validator = InsuranceBPPValidator()
+        
+        else:
+            raise ValueError(f'invalid AccountLayoutType {layout_type}')
+
         bpa_attrs = {}
         bpp_attrs = {}
-        error_str = []
 
-        for bpa_validator, bpp_validator in __validator_pairs__:
-            try:
-                bpa_attrs = bpa_validator().validate(bpa_accounts.normalized(), balance_type, reference_date)
-            except exceptions.AccountLayoutError as exc:
-                error_str.append(f'{bpa_validator.__name__}: {exc}')
-                continue
+        try:
+            bpa_attrs = bpa_validator.validate(bpa_accounts, balance_type, reference_date)
+        except exceptions.AccountLayoutError as exc:
+            raise exceptions.AccountLayoutError(f'{bpa_validator.__class__.__name__} error: {exc}') from None
             
-            try:
-                bpp_attrs = bpp_validator().validate(bpp_accounts.normalized(), balance_type, reference_date)
-            except  exceptions.AccountLayoutError as exc:
-                error_str.append(f'{bpp_validator.__name__}: {exc}')
-                continue
-            else:
-                return cls(**bpa_attrs, **bpp_attrs)
-        
-        raise exceptions.AccountLayoutError(f'invalid BPA or BPP: {error_str}')
+        try:
+            bpp_attrs = bpp_validator.validate(bpp_accounts, balance_type, reference_date)
+        except  exceptions.AccountLayoutError as exc:
+            raise exceptions.AccountLayoutError(f'{bpp_validator.__class__.__name__} error: {exc}') from None
+
+        return cls(**bpa_attrs, **bpp_attrs)
 
     @classmethod
     def from_collection(cls,
+                        layout_type: AccountLayoutType,
                         collection: datatypes.StatementCollection,
                         reference_date: datetime.date
     ) -> BalanceSheet:
         return cls.from_accounts(
-            collection.bpa.accounts,
-            collection.bpp.accounts,
+            layout_type,
+            collection.bpa.normalized().accounts,
+            collection.bpp.normalized().accounts,
             collection.balance_type,
             reference_date
         )
@@ -104,4 +115,8 @@ class BalanceSheet:
         if grouped_collection is None:
             raise ValueError(f'{dfpitr} does not have a grouped collection for balance type {balance_type}')
 
-        return cls.from_collection(grouped_collection[fiscal_year_order], dfpitr.reference_date)
+        return cls.from_collection(
+            AccountLayoutType.from_cvm_code(dfpitr.cvm_code),
+            grouped_collection[fiscal_year_order],
+            dfpitr.reference_date
+        )

@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+__all__ = [
+    'InvalidTaxID',
+    'TaxID',
+    'CNPJ',
+    'CPF'
+]
+
 class InvalidTaxID(ValueError):
     def __init__(self, cls, value, err_desc):
         err_msg = f"invalid value '{value}' for TaxID class {cls}: {err_desc}"

@@ -3,6 +3,10 @@ import datetime
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'BookkeepingAgent'
+]
+
 @dataclasses.dataclass(init=True, frozen=True)
 class BookkeepingAgent:
     """Implements a data structure for Item 4 of CVM Instruction 480/2009."""

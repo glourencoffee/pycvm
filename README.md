@@ -30,10 +30,10 @@ Atualmente, esta biblioteca apenas suporta os documentos FCA, DFP e ITR.
 ```py
 import cvm
 
-for fca in cvm.csvio.fca_reader('caminho/para/arquivo/fca.zip'):
+for fca in cvm.fca_reader('caminho/para/fca.zip'):
     print(fca.company_name, 'entregou o documento FCA em', fca.receipt_date)
 
-for dfpitr in cvm.csvio.dfpitr_reader('caminho/para/arquivo/dfp_ou_itr.zip'):
+for dfpitr in cvm.dfpitr_reader('caminho/para/dfp_ou_itr.zip'):
     print(dfpitr.company_name, 'entregou o documento', dfpitr.type.name, 'em', dfpitr.receipt_date)
 ```
 
@@ -42,8 +42,8 @@ Note que a biblioteca não foi testada por completo e sua API ainda está instá
 Exemplos mais elaborados de uso estão no diretório `samples`:
 
 ```sh
-> python -m samples.dfp.print_accounts 'caminho/para/arquivo/dfp_ou_itr.zip'
-> python -m samples.dfp.print_balances 'caminho/para/arquivo/dfp_ou_itr.zip'
+> python -m samples.dfp.print_accounts 'caminho/para/dfp_ou_itr.zip'
+> python -m samples.dfp.print_balances 'caminho/para/dfp_ou_itr.zip'
 ```
 
   [cvm-portal-de-dados-cia]: <https://dados.cvm.gov.br/dataset/?groups=companhias>

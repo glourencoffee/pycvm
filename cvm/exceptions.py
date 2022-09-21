@@ -1,3 +1,13 @@
+__all__ = [
+    'Error',
+    'NotImplementedException',
+    'ZipMemberError',
+    'BadDocument',
+    'MissingValueError',
+    'InvalidValueError',
+    'AccountLayoutError'
+]
+
 class Error(Exception):
     """Exception raised by this library."""
 

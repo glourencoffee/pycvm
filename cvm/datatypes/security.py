@@ -3,6 +3,14 @@ import datetime
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'SecurityType',
+    'MarketType',
+    'MarketSegment',
+    'PreferredShareType',
+    'Security'
+]
+
 class SecurityType(datatypes.DescriptiveIntEnum):
     STOCK                               = (1,  'Ações Ordinárias')
     DEBENTURE                           = (2,  'Debêntures')
@@ -14,6 +22,10 @@ class SecurityType(datatypes.DescriptiveIntEnum):
     REAL_ESTATE_RECEIVABLE_CERTIFICATE  = (8,  'Certificados de recebíveis imobiliários')
     AGRIBUSINESS_RECEIVABLE_CERTIFICATE = (9,  'Certificado de recebíveis do agronegócio')
     COLLECTIVE_INVESTMENT_BOND          = (10, 'Título de investimento coletivo')
+    FINANCIAL_BILLS                     = (11, 'Letras Financeiras')
+    UNREGISTERED_SECURITY               = (12, 'Valor Mobiliário Não Registrado')
+    UNITS                               = (13, 'Units')
+    PREFERRED_SHARES                    = (14, 'Ações Preferenciais')
 
 class MarketType(datatypes.DescriptiveIntEnum):
     NON_ORGANIZED_OTC = (1, 'Balcão não-organizado')

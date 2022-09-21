@@ -3,6 +3,10 @@ import datetime
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'ShareholderDepartmentPerson'
+]
+
 @dataclasses.dataclass(init=True, frozen=True)
 class ShareholderDepartmentPerson:
     name: str

@@ -1,5 +1,10 @@
 from cvm import datatypes
 
+__all__ = [
+    'RegistrationCategory',
+    'RegistrationStatus'
+]
+
 class RegistrationCategory(datatypes.DescriptiveIntEnum):
     A       = (1, 'Categoria A')
     B       = (2, 'Categoria B')

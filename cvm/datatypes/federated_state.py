@@ -1,5 +1,9 @@
 from cvm import datatypes
 
+__all__ = [
+    'FederatedState'
+]
+
 class FederatedState(datatypes.DescriptiveIntEnum):
     """Enumerates all of the 27 Federate States of Brazil."""
     

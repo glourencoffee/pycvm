@@ -12,7 +12,6 @@ from cvm import datatypes
 from cvm.csvio.batch import CSVBatch
 from cvm.csvio.document      import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
 from cvm.csvio.row           import CSVRow
-from cvm.datatypes.account   import Account, AccountTuple
 from cvm.datatypes.currency  import Currency, CurrencySize
 from cvm.datatypes.tax_id    import CNPJ
 from cvm.datatypes.statement import GroupedStatementCollection, StatementType, Statement, DFCMethod, FiscalYearOrder, BPx, DRxDVA, DFC, DMPL
@@ -20,15 +19,30 @@ from cvm.datatypes.document  import DFPITR
 from cvm.exceptions          import ZipMemberError, NotImplementedException, InvalidValueError, BadDocument
 from cvm.utils               import date_from_string
 
+__all__ = [
+    'BalanceFlag',
+    'dfpitr_reader'
+]
+
+class _StatementFileNames:
+    bpa: str
+    bpp: str
+    dfc_md: str
+    dfc_mi: str
+    dmpl: str
+    dra: str
+    dre: str
+    dva: str
+
 class _MemberNameList:
-    head_filename: str
-    con_filenames: typing.Dict[StatementType, str]
-    ind_filenames: typing.Dict[StatementType, str]
+    head: str
+    con: _StatementFileNames
+    ind: _StatementFileNames
 
     def __init__(self, namelist: typing.Iterable[str]):
-        self.head_filename = ''
-        self.con_filenames = {}
-        self.ind_filenames = {}
+        self.head = ''
+        self.con  = _StatementFileNames()
+        self.ind  = _StatementFileNames()
 
         # <file-name>   ::= <prefix> <middle-name> <suffix>
         # <prefix>      ::= ("dfp" | "itr") "_cia_aberta" ["_"]
@@ -43,27 +57,27 @@ class _MemberNameList:
             except IndexError:
                 raise ZipMemberError(name)
 
-            if   middle_name == '':            self.head_filename                       = name
-            elif middle_name == '_BPA_con':    self.con_filenames[StatementType.BPA]    = name
-            elif middle_name == '_BPA_ind':    self.ind_filenames[StatementType.BPA]    = name
-            elif middle_name == '_BPP_con':    self.con_filenames[StatementType.BPP]    = name
-            elif middle_name == '_BPP_ind':    self.ind_filenames[StatementType.BPP]    = name
-            elif middle_name == '_DFC_MD_con': self.con_filenames[StatementType.DFC_MD] = name
-            elif middle_name == '_DFC_MD_ind': self.ind_filenames[StatementType.DFC_MD] = name
-            elif middle_name == '_DFC_MI_con': self.con_filenames[StatementType.DFC_MI] = name
-            elif middle_name == '_DFC_MI_ind': self.ind_filenames[StatementType.DFC_MI] = name
-            elif middle_name == '_DMPL_con':   self.con_filenames[StatementType.DMPL]   = name
-            elif middle_name == '_DMPL_ind':   self.ind_filenames[StatementType.DMPL]   = name
-            elif middle_name == '_DRA_con':    self.con_filenames[StatementType.DRA]    = name
-            elif middle_name == '_DRA_ind':    self.ind_filenames[StatementType.DRA]    = name
-            elif middle_name == '_DRE_con':    self.con_filenames[StatementType.DRE]    = name
-            elif middle_name == '_DRE_ind':    self.ind_filenames[StatementType.DRE]    = name
-            elif middle_name == '_DVA_con':    self.con_filenames[StatementType.DVA]    = name
-            elif middle_name == '_DVA_ind':    self.ind_filenames[StatementType.DVA]    = name
+            if   middle_name == '':            self.head       = name
+            elif middle_name == '_BPA_con':    self.con.bpa    = name
+            elif middle_name == '_BPA_ind':    self.ind.bpa    = name
+            elif middle_name == '_BPP_con':    self.con.bpp    = name
+            elif middle_name == '_BPP_ind':    self.ind.bpp    = name
+            elif middle_name == '_DFC_MD_con': self.con.dfc_md = name
+            elif middle_name == '_DFC_MD_ind': self.ind.dfc_md = name
+            elif middle_name == '_DFC_MI_con': self.con.dfc_mi = name
+            elif middle_name == '_DFC_MI_ind': self.ind.dfc_mi = name
+            elif middle_name == '_DMPL_con':   self.con.dmpl   = name
+            elif middle_name == '_DMPL_ind':   self.ind.dmpl   = name
+            elif middle_name == '_DRA_con':    self.con.dra    = name
+            elif middle_name == '_DRA_ind':    self.ind.dra    = name
+            elif middle_name == '_DRE_con':    self.con.dre    = name
+            elif middle_name == '_DRE_ind':    self.ind.dre    = name
+            elif middle_name == '_DVA_con':    self.con.dva    = name
+            elif middle_name == '_DVA_ind':    self.ind.dva    = name
             else:
                 raise ZipMemberError(name)
 
-def _row_batch_id(cnpj: CNPJ, reference_date: datetime.date, version: int) -> int:
+def _make_row_batch_id(cnpj: CNPJ, reference_date: datetime.date, version: int) -> int:
     """Calculates the row batch id of a DFP file based on the value of repeated fields.
     
     A CSV file of a DFP file has at least three fields:
@@ -88,7 +102,7 @@ class StatementReader(RegularDocumentBodyReader):
         reference_date = row.required('DT_REFER', date_from_string)
         version        = row.required('VERSAO',   int)
 
-        return _row_batch_id(cnpj, reference_date, version)
+        return _make_row_batch_id(cnpj, reference_date, version)
 
     def read(self, expected_batch_id: int):
         batch = self.read_expected_batch(expected_batch_id)
@@ -96,25 +110,16 @@ class StatementReader(RegularDocumentBodyReader):
 
         return stmts
 
-    def read_common(self, row: CSVRow) -> typing.Tuple[Currency, CurrencySize, datetime.date]:
-        return (
-            row.required('MOEDA',        Currency),
-            row.required('ESCALA_MOEDA', CurrencySize)
-        )
-
-    def read_account(self, row: CSVRow) -> Account:
-        return Account(
+    def read_account(self, row: CSVRow) -> datatypes.Account:
+        return datatypes.Account(
             code      = row.required('CD_CONTA',      str),
             name      = row.optional('DS_CONTA',      str),
             quantity  = row.required('VL_CONTA',      decimal.Decimal),
             is_fixed  = row.required('ST_CONTA_FIXA', str) == 'S'
         )
 
-    def read_accounts(self, rows: typing.List[CSVRow]) -> AccountTuple:
-        currency, currency_size = self.read_common(rows[0])
-        accounts = AccountTuple(currency, currency_size, (self.read_account(row) for row in rows))
-
-        return accounts
+    def read_accounts(self, rows: typing.List[CSVRow]) -> typing.List[datatypes.Account]:
+        return [self.read_account(row) for row in rows]
 
     def read_statements(self, batch: CSVBatch) -> typing.List[typing.Any]:
         grouped_rows = collections.defaultdict(list)
@@ -154,6 +159,8 @@ class BPxReader(StatementReader):
 
         return BPx(
             fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            currency          = first_row.required('MOEDA',        Currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
             accounts          = self.read_accounts(rows)
         )
@@ -167,6 +174,8 @@ class DRxDVAReader(StatementReader):
 
         return DRxDVA(
             fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            currency          = first_row.required('MOEDA',        Currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
             period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
             accounts          = self.read_accounts(rows)
@@ -192,6 +201,8 @@ class DFCReader(StatementReader):
 
         return DFC(
             fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            currency          = first_row.required('MOEDA',        Currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
             method            = dfc_method,
             period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
@@ -199,32 +210,106 @@ class DFCReader(StatementReader):
         )
 
 class DMPLReader(StatementReader):
+    # I know, I know, this is ugly as fuck, but uglier than this
+    # is extracting incorrect data due to CVM's mis-generation of
+    # DFP/ITR files. See issue #9.
+    should_fix_quantities = False
+
     def group_key_fields(self) -> typing.Sequence[str]:
         return ('ORDEM_EXERC', 'DT_INI_EXERC', 'DT_FIM_EXERC')
+
+    def create_dmpl_account(self, code: str, name: str, is_fixed: bool, quantities: typing.Dict[str, int]) -> datatypes.DMPLAccount:
+        # TODO
+        # The below reading of attributes from `quantities`
+        # raises `KeyError` if a required column is missing.
+        # Should we re-raise it as another exception defined
+        # by this library?
+        return datatypes.DMPLAccount(
+            code                                = code,
+            name                                = name,
+            is_fixed                            = is_fixed,
+            share_capital                       = quantities['Capital Social Integralizado'],
+            capital_reserve_and_treasury_shares = quantities['Reservas de Capital, Opções Outorgadas e Ações em Tesouraria'],
+            profit_reserves                     = quantities['Reservas de Lucro'],
+            unappropriated_retained_earnings    = quantities['Lucros ou Prejuízos Acumulados'],
+            other_comprehensive_income          = quantities['Outros Resultados Abrangentes'],
+            controlling_interest                = quantities['Patrimônio Líquido'],
+            non_controlling_interest            = quantities.get('Participação dos Não Controladores', None),
+            consolidated_equity                 = quantities.get('Patrimônio Líquido Consolidado', None)
+        )
+
+    @staticmethod
+    def fix_quantities(quantities: typing.Dict[str, int]) -> typing.Dict[str, int]:
+        # Bugfix for issue #9.
+
+        fixed_quantities = {}
+        prev_column = ''
+
+        for i, (column, quantity) in enumerate(quantities.items()):
+            if i < 3:
+                # Capital Social Integralizado
+                # Reservas de Capital, Opções Outorgadas e Ações em Tesouraria
+                # Reservas de Lucro
+                fixed_quantities[column] = quantity
+
+            elif i == 3:
+                fixed_quantities['Ajustes de Avaliação Patrimonial'] = quantity
+
+            else:
+                fixed_quantities[prev_column] = quantity
+
+            prev_column = column
+
+        return fixed_quantities
 
     def create_statement(self, rows: typing.List[CSVRow]) -> DMPL:
         first_row = rows[0]
 
-        columns_with_accounts = collections.defaultdict(list)
+        last_account  = None
+        quantities    = {}
+        dmpl_accounts = []
 
         for row in rows:
-            column  = row.required('COLUNA_DF', str)
+            column  = row.required('COLUNA_DF', str, allow_empty_string=True)
             account = self.read_account(row)
             
-            columns_with_accounts[column].append(account)
+            if last_account is not None and account.name != last_account.name:
+                if self.should_fix_quantities:
+                    quantities = self.fix_quantities(quantities)
 
-        columns_with_account_tuple = {}
+                dmpl_account = self.create_dmpl_account(
+                    last_account.name,
+                    last_account.code,
+                    last_account.is_fixed,
+                    quantities
+                )
 
-        currency, currency_size = self.read_common(first_row)
+                dmpl_accounts.append(dmpl_account)
+                quantities.clear()
 
-        for column, accounts in columns_with_accounts.items():
-            columns_with_account_tuple[column] = AccountTuple(currency, currency_size, accounts)
+            quantities[column] = account.quantity
+            last_account = account
+
+        if last_account is not None:
+            if self.should_fix_quantities:
+                quantities = self.fix_quantities(quantities)
+
+            dmpl_account = self.create_dmpl_account(
+                last_account.name,
+                last_account.code,
+                last_account.is_fixed,
+                quantities
+            )
+
+            dmpl_accounts.append(dmpl_account)
 
         return DMPL(
             fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
+            currency          = first_row.required('MOEDA',        Currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
             period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
-            columns           = columns_with_account_tuple
+            accounts          = dmpl_accounts
         )
 
 class BalanceFlag(enum.IntFlag):
@@ -232,7 +317,42 @@ class BalanceFlag(enum.IntFlag):
     CONSOLIDATED = 1
     INDIVIDUAL   = 2
 
-def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DFPITR, None, None]:
+def _open_zip_member_on_stack(stack: contextlib.ExitStack, archive: zipfile.ZipFile, filename: str):
+    member = archive.open(filename, mode='r')
+    stream = io.TextIOWrapper(member, encoding='iso-8859-1')
+
+    return stack.enter_context(stream)
+
+def _make_readers(stack: contextlib.ExitStack,
+                  archive: zipfile.ZipFile,
+                  filenames: _StatementFileNames
+) -> typing.List[typing.Tuple[StatementType, StatementReader]]:
+
+    return [
+        (StatementType.BPA,  BPxReader   (_open_zip_member_on_stack(stack, archive, filenames.bpa))),
+        (StatementType.BPP,  BPxReader   (_open_zip_member_on_stack(stack, archive, filenames.bpp))),
+        (StatementType.DRE,  DRxDVAReader(_open_zip_member_on_stack(stack, archive, filenames.dre))),
+        (StatementType.DRA,  DRxDVAReader(_open_zip_member_on_stack(stack, archive, filenames.dra))),
+        (StatementType.DFC,  DFCReader   (_open_zip_member_on_stack(stack, archive, filenames.dfc_md))),
+        (StatementType.DFC,  DFCReader   (_open_zip_member_on_stack(stack, archive, filenames.dfc_mi))),
+        (StatementType.DMPL, DMPLReader  (_open_zip_member_on_stack(stack, archive, filenames.dmpl))),
+        (StatementType.DVA,  DRxDVAReader(_open_zip_member_on_stack(stack, archive, filenames.dva)))
+    ]
+
+def _read_all_statements(batch_id: int, readers: typing.List[typing.Tuple[StatementType, StatementReader]]) -> typing.Dict[StatementType, Statement]:
+    all_statements = collections.defaultdict(dict)
+
+    for stmt_type, stmt_reader in readers:
+        try:
+            statements = stmt_reader.read(batch_id)
+        except (UnexpectedBatch, StopIteration):
+            continue
+
+        all_statements[stmt_type] = statements
+    
+    return all_statements
+
+def _zip_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DFPITR, None, None]:
     ################################################################################
     # The implementation below tries to read all the CSV files contained in the DFP
     # ZIP file simultaneously, taking advantage of the fact that data in these files
@@ -273,38 +393,20 @@ def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DF
     # Reading files simultaneously, as we're doing, is the fastest and cheapest way,
     # but it also makes code a bit harder to read.
     ################################################################################
-    namelist = _MemberNameList(iter(file.namelist()))
+    namelist = _MemberNameList(iter(archive.namelist()))
 
     # Argh, too many files...
     # https://stackoverflow.com/questions/4617034/how-can-i-open-multiple-files-using-with-open-in-python
     with contextlib.ExitStack() as stack:
-        
-        def open_file_on_stack(filename: str):
-            # Files must be wrapped by `TextIOWrapper`, because `ZipFile.open()` opens files as streams of bytes.
-            # https://stackoverflow.com/questions/15282651/how-do-i-read-text-files-within-a-zip-file
-            return stack.enter_context(io.TextIOWrapper(file.open(filename), encoding='ISO-8859-1'))
-        
-        def make_readers(filenames: typing.Mapping[StatementType, str]) -> typing.Dict[StatementType, StatementReader]:
-            return {
-                StatementType.BPA:    BPxReader   (open_file_on_stack(filenames[StatementType.BPA])),
-                StatementType.BPP:    BPxReader   (open_file_on_stack(filenames[StatementType.BPP])),
-                StatementType.DRE:    DRxDVAReader(open_file_on_stack(filenames[StatementType.DRE])),
-                StatementType.DRA:    DRxDVAReader(open_file_on_stack(filenames[StatementType.DRA])),
-                StatementType.DFC_MD: DFCReader   (open_file_on_stack(filenames[StatementType.DFC_MD])),
-                StatementType.DFC_MI: DFCReader   (open_file_on_stack(filenames[StatementType.DFC_MI])),
-                StatementType.DMPL:   DMPLReader  (open_file_on_stack(filenames[StatementType.DMPL])),
-                StatementType.DVA:    DRxDVAReader(open_file_on_stack(filenames[StatementType.DVA]))
-            }
-
-        head_reader = RegularDocumentHeadReader(open_file_on_stack(namelist.head_filename))
+        head_reader = RegularDocumentHeadReader(_open_zip_member_on_stack(stack, archive, namelist.head))
 
         if flag & BalanceFlag.INDIVIDUAL:
-            ind_readers = make_readers(namelist.ind_filenames)
+            ind_readers = _make_readers(stack, archive, namelist.ind)
         else:
             ind_readers = {}
 
         if flag & BalanceFlag.CONSOLIDATED:
-            con_readers = make_readers(namelist.con_filenames)
+            con_readers = _make_readers(stack, archive, namelist.con)
         else:
             con_readers = {}
 
@@ -314,53 +416,46 @@ def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DF
             except StopIteration:
                 break
 
-            head_batch_id = _row_batch_id(head.cnpj, head.reference_date, head.version)
+            head_batch_id = _make_row_batch_id(head.cnpj, head.reference_date, head.version)
 
-            # print(head.company_name, 'version:', head.version)
+            # See issue #9.
+            DMPLReader.should_fix_quantities = (head.reference_date.year >= 2020)
 
-            def read_statements_mapped_by_type(readers):
-                statements_by_type = collections.defaultdict(dict)
-
-                for stmt_type, stmt_reader in readers.items():
-                    try:
-                        statements = stmt_reader.read(head_batch_id)
-                    except (UnexpectedBatch, StopIteration):
-                        continue
-
-                    if stmt_type in (StatementType.DFC_MD, StatementType.DFC_MI):
-                        stmt_type = StatementType.DFC
-
-                    statements_by_type[stmt_type] = statements
-                
-                return statements_by_type
-
-            ind_statements = read_statements_mapped_by_type(ind_readers)
-            con_statements = read_statements_mapped_by_type(con_readers)
+            ind_statements = _read_all_statements(head_batch_id, ind_readers)
+            con_statements = _read_all_statements(head_batch_id, con_readers)
 
             try:
                 if len(ind_statements) > 0:
                     # If at least one statement was read, all others must have been too.
-                    individual = GroupedStatementCollection(datatypes.BalanceType.INDIVIDUAL, ind_statements)
+                    if head.type == datatypes.DocumentType.DFP:
+                        individual = GroupedStatementCollection.from_dfp_statements(datatypes.BalanceType.INDIVIDUAL, ind_statements)
+                    else:
+                        individual = GroupedStatementCollection.from_itr_statements(datatypes.BalanceType.INDIVIDUAL, ind_statements)
                 else:
                     # No statement was read. That means we have processed either:
                     # 1) An old version document that has no statements; or
-                    # 2) A document that has individual statements only.
+                    # 2) A document that has only consolidated statements.
                     individual = None
 
+            except KeyError as exc:
+                print('Skipping individual balances of ', head.type.name, ' document #', head.id, " ('", head.company_name, "' version ", head.version, '): ', exc, sep='')
+                individual = None
+
+            try:
                 if len(con_statements) > 0:
-                    consolidated = GroupedStatementCollection(datatypes.BalanceType.CONSOLIDATED, con_statements)
+                    if head.type == datatypes.DocumentType.DFP:
+                        consolidated = GroupedStatementCollection.from_dfp_statements(datatypes.BalanceType.CONSOLIDATED, con_statements)
+                    else:
+                        consolidated = GroupedStatementCollection.from_itr_statements(datatypes.BalanceType.CONSOLIDATED, con_statements)
                 else:
+                    # No statement was read. That means we have processed either:
+                    # 1) An old version document that has no statements; or
+                    # 2) A document that has only individual statements.
                     consolidated = None
 
             except KeyError as exc:
-                # TODO: Throwing exceptions stops yielding further documents.
-                #       Maybe store all exceptions and throw them in one go later?
-                print(
-                    f"failed to read {head.type.name} statements from document #{head.id} "
-                    f"('{head.company_name}' version {head.version}): {exc}"
-                )
-
-                continue
+                print('Skipping consolidated balances of ', head.type.name, ' document #', head.id, " ('", head.company_name, "' version ", head.version, '): ', exc, sep='')
+                consolidated = None
 
             yield DFPITR(
                 cnpj           = head.cnpj,
@@ -376,11 +471,11 @@ def _zip_reader(file: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DF
                 consolidated   = consolidated
             )
 
-def reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str],
-           flag: BalanceFlag = BalanceFlag.CONSOLIDATED|BalanceFlag.INDIVIDUAL
+def dfpitr_reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str],
+                  flag: BalanceFlag = BalanceFlag.CONSOLIDATED|BalanceFlag.INDIVIDUAL
 ) -> typing.Generator[DFPITR, None, None]:
 
     if not isinstance(file, zipfile.ZipFile):
-        file = zipfile.ZipFile(file)
+        file = zipfile.ZipFile(file, mode='r')
 
     return _zip_reader(file, flag)

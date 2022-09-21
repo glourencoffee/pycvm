@@ -3,6 +3,11 @@ import datetime
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'InvestorRelationsOfficerType',
+    'InvestorRelationsOfficer'
+]
+
 class InvestorRelationsOfficerType(datatypes.DescriptiveIntEnum):
     INVESTOR_RELATIONS_OFFICER = (1, 'Diretor de relações com investidores')
     LIQUIDATOR                 = (2, 'Liquidante')
@@ -10,6 +15,9 @@ class InvestorRelationsOfficerType(datatypes.DescriptiveIntEnum):
     TRUSTEE                    = (4, 'Gestor judicial')
     SYNDIC                     = (5, 'Síndico')
     LEGAL_REPRESENTATIVE       = (6, 'Representante legal (para emissores estrangeiros)')
+    INTERVENTOR                = (7, 'Interventor')
+    SPECIAL_TEMP_ADMINISTRATOR = (8, 'Administrador Especial Temporário')
+    VACANT_POSITION            = (9, 'Cargo Vago')
 
 @dataclasses.dataclass(init=True, frozen=True)
 class InvestorRelationsOfficer:

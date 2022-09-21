@@ -4,8 +4,13 @@ import os
 import typing
 import zipfile
 from cvm                import datatypes, exceptions, utils
+from cvm.csvio.batch import CSVBatch
 from cvm.csvio.document import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
 from cvm.csvio.row      import CSVRow
+
+__all__ = [
+    'fca_reader'
+]
 
 class _MemberNameList:
     head_filename: str
@@ -52,60 +57,175 @@ class _MemberNameList:
             else:
                 raise zipfile.BadZipFile(f"unknown member file '{name}'")
 
-class AddressReader(RegularDocumentBodyReader):
-    """'fca_cia_aberta_endereco_YYYY.csv'"""
+class CommonReader(RegularDocumentBodyReader):
+    @classmethod
+    def read_country(cls, row: CSVRow, fieldname: str) -> typing.Optional[datatypes.Country]:
+        country_name = row[fieldname]
+
+        if country_name in ('', 'N/A', 'Não aplicável'):
+            return None
+
+        try:
+            return datatypes.Country(country_name)
+        except ValueError:
+            #===========================================================
+            # Below is what happens when you don't enforce valid country
+            # names at GUI level, but instead let user type out country
+            # names and accept them as is. Argh.
+            #===========================================================
+
+            if country_name in ('Brasi', 'BR', 'São Paulo'):
+                return datatypes.Country.BR
+            
+            if country_name == 'Espanhã':
+                return datatypes.Country.ES
+            
+            if country_name in ('Reino Unido', 'Inglaterra'):
+                return datatypes.Country.GB
+
+            if country_name in ('Nova Iorque', 'EUA', 'Estados Unidos da América'):
+                return datatypes.Country.US
+
+            if country_name == 'Luxemburgo.':
+                return datatypes.Country.LU
+
+            if country_name == 'Canadá Toronto Stock Exchange Venture (TSX-V)':
+                return datatypes.Country.CA
+
+            if country_name == 'Suiça':
+                return datatypes.Country.CH
+
+            print('[', cls.__name__, "] Unknown country name '", country_name, "' at field '", fieldname, "'", sep='')
+            return None
+
+    @classmethod
+    def read_address(cls, row: CSVRow) -> datatypes.Address:
+        return datatypes.Address(
+            street      = row.required('Logradouro',   str, allow_empty_string=True),
+            complement  = row.optional('Complemento',  str, allow_empty_string=True),
+            district    = row.required('Bairro',       str, allow_empty_string=True),
+            city        = row.required('Cidade',       str, allow_empty_string=True),
+            state       = row.required('Sigla_UF',     str, allow_empty_string=True),
+            country     = cls.read_country(row, 'Pais'),
+            postal_code = row.required('CEP',          int)
+        )
+
+    @classmethod
+    def read_phone(cls, row: CSVRow) -> datatypes.Phone:
+        # TODO
+        # Some phones have misassigned area codes in some FCA files.
+        # For example, the correct row would be:
+        #
+        # DDI_Telefone | DDD_Telefone | Telefone
+        # -------------|--------------|---------
+        #     55       |      11      | 12345678
+        #
+        # However, some files have rows like this:
+        #
+        # DDI_Telefone | DDD_Telefone | Telefone
+        # -------------|--------------|---------
+        #              |    5511      | 12345678
+        #
+        # There is no area code 5511 in Brazil, so clearly,
+        # 55 means the country code. Maybe the person who
+        # sent the company data to CVM inputted it wrongly,
+        # or maybe CVM generated the file wrongly.
+        # 
+        # Also, it is possible that "DDD_Telefone" is not
+        # specified because it is given in "Telefone":
+        #
+        # DDI_Telefone | DDD_Telefone | Telefone
+        # -------------|--------------|-----------
+        #              |              | 1112345678
+        #
+        # I know, it's annoying that CVM files lack a proper
+        # structure, but anyway, should this library fix cases
+        # like this or leave it as is?
+
+        return datatypes.Phone(
+            country_code = row.optional('DDI_Telefone', int, allow_empty_string=False),
+            area_code    = row.required('DDD_Telefone', int),
+            number       = row.required('Telefone',     int)
+        )
+
+    @classmethod
+    def read_fax(cls, row: CSVRow) -> datatypes.Phone:
+        return datatypes.Phone(
+            country_code = row.optional('DDI_Fax', int, allow_empty_string=False),
+            area_code    = row.required('DDD_Fax', int),
+            number       = row.required('Fax',     int)
+        )
+
+    @classmethod
+    def read_contact(cls, row: CSVRow) -> datatypes.Contact:
+        try:
+            phone = cls.read_phone(row)
+        except exceptions.BadDocument:
+            phone = None
+
+        try:
+            fax = cls.read_fax(row)
+        except exceptions.BadDocument:
+            fax = None
+
+        return datatypes.Contact(
+            phone = phone,
+            fax   = fax,
+            email = row.optional('Email', str)
+        )
+
+    @classmethod
+    def read_many(cls, batch: CSVBatch, read_function: typing.Callable[[CSVRow], typing.Any]) -> typing.List[typing.Any]:
+        items = []
+
+        for line, row in enumerate(batch, start=1):
+            try:
+                item = read_function(row)
+            except exceptions.BadDocument as exc:
+                print('[', cls.__name__, '] Skipping line ', line, ' in batch ', batch.id, sep='', end='')
+                print(':', exc)
+            else:
+                items.append(item)
+
+        return items
 
     def batch_id(self, row: CSVRow) -> int:
         return row.required('ID_Documento', int)
 
+class AddressReader(CommonReader):
+    """'fca_cia_aberta_endereco_YYYY.csv'"""
+
     def read(self, document_id: int) -> typing.List[datatypes.Address]:
-        addresses = []
-
-        for row in self.read_expected_batch(document_id):
-            # Tipo_Endereco						Pais	CEP		DDI_Telefone	DDD_Telefone	Telefone	DDI_Fax	DDD_Fax	Fax	Email
-
-            addresses.append(datatypes.Address(
-                street      = row.required('Logradouro',   str),
-                complement  = row.required('Complemento',  str),
-                district    = row.required('Bairro',       str),
-                city        = row.required('Cidade',       str),
-                state       = row.required('Sigla_UF',     str),
-                country     = row.required('Pais',         datatypes.Country),
-                postal_code = row.required('CEP',          int)
-            ))
+        batch     = self.read_expected_batch(document_id)
+        addresses = self.read_many(batch, self.read_address)
 
         return addresses
 
-class TradingAdmissionReader(RegularDocumentBodyReader):
+class TradingAdmissionReader(CommonReader):
     """'fca_cia_aberta_pais_estrangeiro_negociacao_YYYY.csv'"""
 
-    def batch_id(self, row: CSVRow):
-        return row.required('ID_Documento', int)
+    @classmethod
+    def read_trading_admission(cls, row: CSVRow) -> datatypes.TradingAdmission:
+        return datatypes.TradingAdmission(
+            foreign_country = cls.read_country(row, 'Pais'),
+            admission_date  = row.required('Data_Admissao_Negociacao', utils.date_from_string)
+        )
 
     def read(self, document_id: int) -> typing.List[datatypes.TradingAdmission]:
-        batch = self.read_expected_batch(document_id)
-
-        trading_admissions = []
-
-        for row in batch:
-            trading_admissions.append(datatypes.TradingAdmission(
-                foreign_country = row.required('Pais',                     datatypes.Country),
-                admission_date  = row.required('Data_Admissao_Negociacao', utils.date_from_string)
-            ))
+        batch              = self.read_expected_batch(document_id)
+        trading_admissions = self.read_many(batch, self.read_trading_admission)
 
         return trading_admissions
 
-class IssuerCompanyReader(RegularDocumentBodyReader):
+class IssuerCompanyReader(CommonReader):
     """'fca_cia_aberta_geral_YYYY.csv'"""
-
-    def batch_id(self, row: CSVRow):
-        return row.required('ID_Documento', int)
 
     def read(self,
              document_id: int,
              trading_admissions: typing.Sequence[datatypes.TradingAdmission],
              addresses: typing.Sequence[datatypes.Address]
     ) -> datatypes.IssuerCompany:
+
         batch = self.read_expected_batch(document_id)
         row   = batch.rows[0]
 
@@ -121,8 +241,8 @@ class IssuerCompanyReader(RegularDocumentBodyReader):
             cvm_registration_category_started = row.required('Data_Categoria_Registro_CVM',       utils.date_from_string),
             cvm_registration_status           = row.required('Situacao_Registro_CVM',             datatypes.RegistrationStatus),
             cvm_registration_status_started   = row.required('Data_Situacao_Registro_CVM',        utils.date_from_string),
-            home_country                      = row.required('Pais_Origem',                       datatypes.Country),
-            securities_custody_country        = row.required('Pais_Custodia_Valores_Mobiliarios', datatypes.Country),
+            home_country                      = self.read_country(row, 'Pais_Origem'),
+            securities_custody_country        = self.read_country(row, 'Pais_Custodia_Valores_Mobiliarios'),
             trading_admissions                = tuple(iter(trading_admissions)),
             industry                          = row.required('Setor_Atividade',                   datatypes.Industry),
             issuer_status                     = row.required('Situacao_Emissor',                  datatypes.IssuerStatus),
@@ -132,19 +252,17 @@ class IssuerCompanyReader(RegularDocumentBodyReader):
             fiscal_year_end_day               = row.required('Dia_Encerramento_Exercicio_Social', int),
             fiscal_year_end_month             = row.required('Mes_Encerramento_Exercicio_Social', int),
             fiscal_year_last_changed          = row.optional('Data_Alteracao_Exercicio_Social',   utils.date_from_string),
-            webpage                           = row.required('Pagina_Web',                        str),
+            webpage                           = row.optional('Pagina_Web',                        str),
             communication_channels            = (),
             addresses                         = tuple(iter(addresses)),
             contact                           = None # TODO
         )
 
-class SecurityReader(RegularDocumentBodyReader):
+class SecurityReader(CommonReader):
     """'fca_cia_aberta_valor_mobiliario_YYYY.csv'"""
 
-    def batch_id(self, row: CSVRow) -> int:
-        return row.required('ID_Documento', int)
-
-    def read_one(self, row: CSVRow) -> datatypes.Security:
+    @classmethod
+    def read_security(cls, row: CSVRow) -> datatypes.Security:
         return datatypes.Security(
             type                          = row.required('Valor_Mobiliario',              datatypes.SecurityType),
             market_type                   = row.required('Mercado',                       datatypes.MarketType),
@@ -162,17 +280,15 @@ class SecurityReader(RegularDocumentBodyReader):
 
     def read(self, document_id: int) -> typing.List[datatypes.Security]:
         batch      = self.read_expected_batch(document_id)
-        securities = [self.read_one(row) for row in batch.rows]
+        securities = self.read_many(batch, self.read_security)
 
         return securities
 
-class AuditorReader(RegularDocumentBodyReader):
+class AuditorReader(CommonReader):
     """'fca_cia_aberta_auditor_YYYY.csv'"""
 
-    def batch_id(self, row: CSVRow) -> int:
-        return row.required('ID_Documento', int)
-
-    def read_one(self, row: CSVRow) -> datatypes.Auditor:
+    @classmethod
+    def read_auditor(cls, row: CSVRow) -> datatypes.Auditor:
         tax_id_str = row.required('CPF_CNPJ_Auditor', str)
 
         try:
@@ -197,130 +313,79 @@ class AuditorReader(RegularDocumentBodyReader):
 
     def read(self, document_id: int) -> typing.List[datatypes.Auditor]:
         batch    = self.read_expected_batch(document_id)
-        auditors = [self.read_one(row) for row in batch.rows]
+        auditors = self.read_many(batch, self.read_auditor)
 
         return auditors
 
-class BookkeepingAgentReader(RegularDocumentBodyReader):
+class BookkeepingAgentReader(CommonReader):
     """'fca_cia_aberta_escriturador_YYYY.csv'"""
 
-    def batch_id(self, row: CSVRow) -> int:
-        return row.required('ID_Documento', int)
-
-    def read_one(self, row: CSVRow) -> datatypes.BookkeepingAgent:
-        address = datatypes.Address(
-            street      = row.required('Logradouro',  str),
-            complement  = row.required('Complemento', str),
-            district    = row.required('Bairro',      str),
-            city        = row.required('Cidade',      str),
-            state       = row.required('Sigla_UF',    str),
-            country     = row.required('Pais',        datatypes.Country),
-            postal_code = row.required('CEP',         int)
-        )
-
-        contact = datatypes.Contact(
-            phone = None, # TODO
-            fax   = None, # TODO
-            email = row.optional('Email', str)
-        )
-
+    @classmethod
+    def read_bookkeeping_agent(cls, row: CSVRow) -> datatypes.BookkeepingAgent:
         return datatypes.BookkeepingAgent(
             name             = row.required('Escriturador',      str),
             cnpj             = row.required('CNPJ_Escriturador', datatypes.CNPJ.from_zfilled_with_separators),
-            address          = address,
-            contact          = contact,
+            address          = cls.read_address(row),
+            contact          = cls.read_contact(row),
             activity_started = row.optional('Data_Inicio_Atuacao', utils.date_from_string),
             activity_ended   = row.optional('Data_Fim_Atuacao',    utils.date_from_string)
         )
 
     def read(self, document_id: int) -> typing.List[datatypes.BookkeepingAgent]:
         batch              = self.read_expected_batch(document_id)
-        bookkeeping_agents = [self.read_one(row) for row in batch.rows]
+        bookkeeping_agents = self.read_many(batch, self.read_bookkeeping_agent)
 
         return bookkeeping_agents
 
-class InvestorRelationsDepartmentReader(RegularDocumentBodyReader):
+class InvestorRelationsDepartmentReader(CommonReader):
     """'fca_cia_aberta_dri_YYYY.csv'"""
 
-    def batch_id(self, row: CSVRow) -> int:
-        return row.required('ID_Documento', int)
-
-    def read_one(self, row: CSVRow) -> datatypes.InvestorRelationsOfficer:
-        address = datatypes.Address(
-            street      = row.required('Logradouro',  str),
-            complement  = row.optional('Complemento', str),
-            district    = row.required('Bairro',      str),
-            city        = row.required('Cidade',      str),
-            state       = row.required('Sigla_UF',    str), # TODO
-            country     = row.required('Pais',        datatypes.Country),
-            postal_code = row.required('CEP',         int)
-        )
-
-        contact = datatypes.Contact(
-            phone = None, # TODO
-            fax   = None, # TODO
-            email = row.optional('Email', str)
-        )
-
+    @classmethod
+    def read_investor_relations_officer(cls, row: CSVRow) -> datatypes.InvestorRelationsOfficer:
         return datatypes.InvestorRelationsOfficer(
             type             = row.required('Tipo_Responsavel', datatypes.InvestorRelationsOfficerType),
             name             = row.required('Responsavel',      str),
             cpf              = row.required('CPF_Responsavel',  datatypes.CPF.from_zfilled_with_separators),
-            address          = address,
-            contact          = contact,
+            address          = cls.read_address(row),
+            contact          = cls.read_contact(row),
             activity_started = row.required('Data_Inicio_Atuacao', utils.date_from_string),
             activity_ended   = row.optional('Data_Fim_Atuacao',    utils.date_from_string)
         )
 
     def read(self, document_id: int) -> typing.List[datatypes.InvestorRelationsOfficer]:
         batch = self.read_expected_batch(document_id)
-        ird   = [self.read_one(row) for row in batch]
+        ird   = self.read_many(batch, self.read_investor_relations_officer)
 
         return ird
 
-class ShareholderDepartmentReader(RegularDocumentBodyReader):
+class ShareholderDepartmentReader(CommonReader):
     """'fca_cia_aberta_departamento_acionistas_YYYY.csv'"""
 
-    def batch_id(self, row: CSVRow) -> int:
-        return row.required('ID_Documento', int)
-
-    def read_one(self, row: CSVRow) -> datatypes.ShareholderDepartmentPerson:
-        address = datatypes.Address(
-            street      = row.required('Logradouro',  str),
-            complement  = row.optional('Complemento', str),
-            district    = row.required('Bairro',      str),
-            city        = row.required('Cidade',      str),
-            state       = row.required('Sigla_UF',    str), # TODO
-            country     = row.required('Pais',        datatypes.Country),
-            postal_code = row.required('CEP',         int)
-        )
-
-        contact = datatypes.Contact(
-            phone = None, # TODO
-            fax   = None, # TODO
-            email = row.optional('Email', str)
-        )
-        
+    @classmethod
+    def read_shareholder_dept_person(cls, row: CSVRow) -> datatypes.ShareholderDepartmentPerson:
         return datatypes.ShareholderDepartmentPerson(
             name             = row.required('Contato', str),
-            address          = address,
-            contact          = contact,
+            address          = cls.read_address(row),
+            contact          = cls.read_contact(row),
             activity_started = row.optional('Data_Inicio_Contato', utils.date_from_string),
             activity_ended   = row.optional('Data_Fim_Contato',    utils.date_from_string)
         )
     
     def read(self, document_id: int) -> typing.List[datatypes.ShareholderDepartmentPerson]:
-        batch             = self.read_expected_batch(document_id)
-        sharedholder_dept = [self.read_one(row) for row in batch]
+        batch            = self.read_expected_batch(document_id)
+        shareholder_dept = self.read_many(batch, self.read_shareholder_dept_person)
 
-        return sharedholder_dept
+        return shareholder_dept
 
-def _zip_reader(file: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
-    namelist = _MemberNameList(iter(file.namelist()))
+def _zip_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
+    namelist = _MemberNameList(iter(archive.namelist()))
 
     with contextlib.ExitStack() as stack:
         def open_on_stack(filename: str):
-            return stack.enter_context(io.TextIOWrapper(file.open(filename), encoding='ISO-8859-1'))
+            member = archive.open(filename, mode='r')
+            stream = io.TextIOWrapper(member, encoding='iso-8859-1')
+            
+            return stack.enter_context(stream)
 
         head_reader              = RegularDocumentHeadReader        (open_on_stack(namelist.head_filename))
         address_reader           = AddressReader                    (open_on_stack(namelist.address_filename))
@@ -420,8 +485,8 @@ def _zip_reader(file: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, 
                 shareholder_department        = tuple(shareholder_dept)
             )
 
-def reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str]) -> typing.Generator[datatypes.FCA, None, None]:
+def fca_reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str]) -> typing.Generator[datatypes.FCA, None, None]:
     if not isinstance(file, zipfile.ZipFile):
-        file = zipfile.ZipFile(file)
+        file = zipfile.ZipFile(file, mode='r')
 
     return _zip_reader(file)

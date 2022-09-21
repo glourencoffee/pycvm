@@ -2,6 +2,10 @@ import dataclasses
 import typing
 from cvm import datatypes
 
+__all__ = [
+    'Address'
+]
+
 @dataclasses.dataclass(init=True, frozen=True)
 class Address:
     street: str
@@ -9,7 +13,7 @@ class Address:
     district: str
     city: str
     state: typing.Union[datatypes.FederatedState, str]
-    country: datatypes.Country
+    country: typing.Optional[datatypes.Country]
     postal_code: int
 
     __slots__ = (
