@@ -278,10 +278,10 @@ class DMPLReader(StatementReader):
                     quantities = self.fix_quantities(quantities)
 
                 dmpl_account = self.create_dmpl_account(
-                    last_account.name,
-                    last_account.code,
-                    last_account.is_fixed,
-                    quantities
+                    code       = last_account.code,
+                    name       = last_account.name,
+                    is_fixed   = last_account.is_fixed,
+                    quantities = quantities
                 )
 
                 dmpl_accounts.append(dmpl_account)
@@ -295,10 +295,10 @@ class DMPLReader(StatementReader):
                 quantities = self.fix_quantities(quantities)
 
             dmpl_account = self.create_dmpl_account(
-                last_account.name,
-                last_account.code,
-                last_account.is_fixed,
-                quantities
+                code       = last_account.code,
+                name       = last_account.name,
+                is_fixed   = last_account.is_fixed,
+                quantities = quantities
             )
 
             dmpl_accounts.append(dmpl_account)

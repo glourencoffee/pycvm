@@ -421,14 +421,11 @@ class GroupedStatementCollection:
                     else:
                         print('Ignoring unknown extra (previous) statement of type ', stmt_type.name, ': ', stmt, sep='')
 
-        # print('making _last')
         last = StatementCollection(balance_type, last_fy_stmts, last_dre_extra, last_dra_extra)
 
         if len(prev_fy_stmts) > 0:
-            # print('making _prev, prev_dre_extra=', (prev_dre_extra is not None))
             prev = StatementCollection(balance_type, prev_fy_stmts, prev_dre_extra, prev_dra_extra)
         else:
-            # print('_prev is None')
             prev = None
 
         return GroupedStatementCollection(last=last, previous=prev)
@@ -445,10 +442,13 @@ class GroupedStatementCollection:
     def last(self) -> StatementCollection:
         return self._last
 
-    def collections(self) -> typing.Tuple[StatementCollection, StatementCollection]:
-        return (self._prev, self._last)
+    def collections(self) -> typing.Tuple[StatementCollection]:
+        if self._prev is not None:
+            return (self._prev, self._last)
+        else:
+            return (self._last,)
 
-    def collection(self, fiscal_year_order: FiscalYearOrder) -> StatementCollection:
+    def collection(self, fiscal_year_order: FiscalYearOrder) -> typing.Optional[StatementCollection]:
         if fiscal_year_order == FiscalYearOrder.LAST:
             return self._last
         elif fiscal_year_order == FiscalYearOrder.SECOND_TO_LAST:
@@ -456,5 +456,5 @@ class GroupedStatementCollection:
         else:
             raise ValueError(f'invalid fiscal year order {fiscal_year_order}')
 
-    def __getitem__(self, fiscal_year_order: FiscalYearOrder) -> StatementCollection:
+    def __getitem__(self, fiscal_year_order: FiscalYearOrder) -> typing.Optional[StatementCollection]:
         return self.collection(fiscal_year_order)
