@@ -19,14 +19,14 @@ class AccountLayout:
     fixed_accounts: typing.List[cvm.Account] = dataclasses.field(default_factory=list)
     companies:      typing.List[Company]     = dataclasses.field(default_factory=list)
 
-def get_account_layouts(dfp_file_name: str,
+def get_account_layouts(dfp_file: cvm.DFPITRFile,
                         max_level: int,
                         statement_type: cvm.StatementType
 ) -> typing.Dict[int, AccountLayout]:
     
     layouts = collections.defaultdict(AccountLayout)
 
-    for doc in cvm.dfpitr_reader(dfp_file_name):
+    for doc in dfp_file:
         if doc.consolidated is None:
             continue
 
@@ -107,7 +107,8 @@ def main():
 
     statement_type = getattr(cvm.StatementType, statement_type)
 
-    layouts = get_account_layouts(dfp_file_name, max_level, statement_type)
+    with cvm.DFPITRFile(dfp_file_name) as file:
+        layouts = get_account_layouts(file, max_level, statement_type)
 
     if not os.path.isdir(out_dir_name):
         os.mkdir(out_dir_name)

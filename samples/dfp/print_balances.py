@@ -37,8 +37,8 @@ def main():
         return 1
 
     try:
-        with zipfile.ZipFile(sys.argv[1]) as file:
-            for dfpitr in cvm.dfpitr_reader(file):
+        with cvm.DFPITRFile(sys.argv[1]) as file:
+            for dfpitr in file:
                 print_dfpitr(dfpitr)
 
     except KeyboardInterrupt:
