@@ -1,3 +1,4 @@
+from __future__ import annotations
 import collections
 import contextlib
 import datetime
@@ -21,7 +22,8 @@ from cvm.utils               import date_from_string
 
 __all__ = [
     'BalanceFlag',
-    'dfpitr_reader'
+    'dfpitr_reader',
+    'DFPITRFile'
 ]
 
 class _StatementFileNames:
@@ -352,7 +354,7 @@ def _read_all_statements(batch_id: int, readers: typing.List[typing.Tuple[Statem
     
     return all_statements
 
-def _zip_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DFPITR, None, None]:
+def dfpitr_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DFPITR, None, None]:
     ################################################################################
     # The implementation below tries to read all the CSV files contained in the DFP
     # ZIP file simultaneously, taking advantage of the fact that data in these files
@@ -471,11 +473,16 @@ def _zip_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator
                 consolidated   = consolidated
             )
 
-def dfpitr_reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str],
-                  flag: BalanceFlag = BalanceFlag.CONSOLIDATED|BalanceFlag.INDIVIDUAL
-) -> typing.Generator[DFPITR, None, None]:
+class DFPITRFile(zipfile.ZipFile):
+    """Class for reading `DFPITR` objects from a DFP/ITR file."""
 
-    if not isinstance(file, zipfile.ZipFile):
-        file = zipfile.ZipFile(file, mode='r')
+    def __init__(self, file: typing.Union[os.PathLike, typing.IO[bytes]], flag: BalanceFlag=BalanceFlag.CONSOLIDATED|BalanceFlag.INDIVIDUAL) -> None:
+        super().__init__(file, mode='r')
 
-    return _zip_reader(file, flag)
+        self._reader = dfpitr_reader(archive=self, flag=flag)
+
+    def __iter__(self) -> DFPITRFile:
+        return self
+
+    def __next__(self) -> DFPITR:
+        return next(self._reader)

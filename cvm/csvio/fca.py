@@ -1,15 +1,17 @@
+from __future__ import annotations
 import contextlib
 import io
 import os
 import typing
 import zipfile
 from cvm                import datatypes, exceptions, utils
-from cvm.csvio.batch import CSVBatch
+from cvm.csvio.batch    import CSVBatch
 from cvm.csvio.document import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
 from cvm.csvio.row      import CSVRow
 
 __all__ = [
-    'fca_reader'
+    'fca_reader',
+    'FCAFile'
 ]
 
 class _MemberNameList:
@@ -377,7 +379,7 @@ class ShareholderDepartmentReader(CommonReader):
 
         return shareholder_dept
 
-def _zip_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
+def fca_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
     namelist = _MemberNameList(iter(archive.namelist()))
 
     with contextlib.ExitStack() as stack:
@@ -485,8 +487,16 @@ def _zip_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, Non
                 shareholder_department        = tuple(shareholder_dept)
             )
 
-def fca_reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str]) -> typing.Generator[datatypes.FCA, None, None]:
-    if not isinstance(file, zipfile.ZipFile):
-        file = zipfile.ZipFile(file, mode='r')
+class FCAFile(zipfile.ZipFile):
+    """Class for reading `FCA` objects from an FCA file."""
 
-    return _zip_reader(file)
+    def __init__(self, file: typing.Union[os.PathLike, typing.IO[bytes]]) -> None:
+        super().__init__(file, mode='r')
+
+        self._reader = fca_reader(archive=self)
+
+    def __iter__(self) -> FCAFile:
+        return self
+
+    def __next__(self) -> datatypes.FCA:
+        return next(self._reader)
