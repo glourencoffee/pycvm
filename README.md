@@ -30,11 +30,13 @@ Atualmente, esta biblioteca apenas suporta os documentos FCA, DFP e ITR.
 ```py
 import cvm
 
-for fca in cvm.fca_reader('caminho/para/fca.zip'):
-    print(fca.company_name, 'entregou o documento FCA em', fca.receipt_date)
+with cvm.FCAFile('caminho/para/fca.zip') as file:
+    for fca in file:
+        print(fca.company_name, 'entregou o documento FCA em', fca.receipt_date)
 
-for dfpitr in cvm.dfpitr_reader('caminho/para/dfp_ou_itr.zip'):
-    print(dfpitr.company_name, 'entregou o documento', dfpitr.type.name, 'em', dfpitr.receipt_date)
+with cvm.DFPITRFile('caminho/para/dfp_ou_itr.zip') as file:
+    for dfpitr in file:
+        print(dfpitr.company_name, 'entregou o documento', dfpitr.type.name, 'em', dfpitr.receipt_date)
 ```
 
 Note que a biblioteca não foi testada por completo e sua API ainda está instável.
