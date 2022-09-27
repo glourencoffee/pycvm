@@ -53,19 +53,19 @@ class FCA(RegularDocument):
     issuer_company: typing.Optional[datatypes.IssuerCompany]
     """Instruction Item 1"""
 
-    securities: typing.Tuple[datatypes.Security]
+    securities: typing.List[datatypes.Security]
     """Instruction Item 2"""
 
-    auditors: typing.Tuple[datatypes.Auditor]
+    auditors: typing.List[datatypes.Auditor]
     """Instruction Item 3"""
 
-    bookkeeping_agents: typing.Tuple[datatypes.BookkeepingAgent]
+    bookkeeping_agents: typing.List[datatypes.BookkeepingAgent]
     """Instruction Item 4"""
     
-    investor_relations_department: typing.Tuple[datatypes.InvestorRelationsOfficer]
+    investor_relations_department: typing.List[datatypes.InvestorRelationsOfficer]
     """Instruction Item 5"""
 
-    shareholder_department: typing.Tuple[datatypes.ShareholderDepartmentPerson]
+    shareholder_department: typing.List[datatypes.ShareholderDepartmentPerson]
     """Instruction Item 6"""
 
 @dataclasses.dataclass(init=True, repr=False)

@@ -6,7 +6,7 @@ __all__ = [
     'Contact'
 ]
 
-@dataclasses.dataclass(init=True, frozen=True)
+@dataclasses.dataclass(init=True)
 class Contact:
     phone: typing.Optional[datatypes.Phone]
     fax: typing.Optional[datatypes.Phone]

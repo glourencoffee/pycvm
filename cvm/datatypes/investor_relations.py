@@ -19,7 +19,7 @@ class InvestorRelationsOfficerType(datatypes.DescriptiveIntEnum):
     SPECIAL_TEMP_ADMINISTRATOR = (8, 'Administrador Especial Temporário')
     VACANT_POSITION            = (9, 'Cargo Vago')
 
-@dataclasses.dataclass(init=True, frozen=True)
+@dataclasses.dataclass(init=True)
 class InvestorRelationsOfficer:
     """Implements a data structure for Item 5 of CVM Instruction 480/2009."""
 

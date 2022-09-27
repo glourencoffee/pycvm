@@ -5,7 +5,7 @@ __all__ = [
     'CommunicationChannel'
 ]
 
-@dataclasses.dataclass(init=True, frozen=True)
+@dataclasses.dataclass(init=True)
 class CommunicationChannel:
     name: str
     state: datatypes.FederatedState

@@ -7,7 +7,7 @@ __all__ = [
     'Auditor'
 ]
 
-@dataclasses.dataclass(init=True, frozen=True)
+@dataclasses.dataclass(init=True)
 class Auditor:
     """Implements a data structure for Item 3 of CVM Instruction 480/2009."""
 

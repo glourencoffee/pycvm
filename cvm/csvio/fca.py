@@ -222,8 +222,8 @@ class IssuerCompanyReader(CommonReader):
 
     def read(self,
              document_id: int,
-             trading_admissions: typing.Sequence[datatypes.TradingAdmission],
-             addresses: typing.Sequence[datatypes.Address]
+             trading_admissions: typing.List[datatypes.TradingAdmission],
+             addresses: typing.List[datatypes.Address]
     ) -> datatypes.IssuerCompany:
 
         batch = self.read_expected_batch(document_id)
@@ -243,7 +243,7 @@ class IssuerCompanyReader(CommonReader):
             cvm_registration_status_started   = row.required('Data_Situacao_Registro_CVM',        utils.date_from_string),
             home_country                      = self.read_country(row, 'Pais_Origem'),
             securities_custody_country        = self.read_country(row, 'Pais_Custodia_Valores_Mobiliarios'),
-            trading_admissions                = tuple(iter(trading_admissions)),
+            trading_admissions                = trading_admissions,
             industry                          = row.required('Setor_Atividade',                   datatypes.Industry),
             issuer_status                     = row.required('Situacao_Emissor',                  datatypes.IssuerStatus),
             issuer_status_started             = row.required('Data_Situacao_Emissor',             utils.date_from_string),
@@ -253,8 +253,8 @@ class IssuerCompanyReader(CommonReader):
             fiscal_year_end_month             = row.required('Mes_Encerramento_Exercicio_Social', int),
             fiscal_year_last_changed          = row.optional('Data_Alteracao_Exercicio_Social',   utils.date_from_string),
             webpage                           = row.optional('Pagina_Web',                        str),
-            communication_channels            = (),
-            addresses                         = tuple(iter(addresses)),
+            communication_channels            = [],  # TODO
+            addresses                         = addresses,
             contact                           = None # TODO
         )
 
@@ -406,18 +406,18 @@ def _zip_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, Non
             try:
                 addresses = address_reader.read(head.id)
             except (UnexpectedBatch, StopIteration):
-                addresses = ()
+                addresses = []
             except exceptions.BadDocument as exc:
                 print('Error while reading addresses:', exc)
-                addresses = ()
+                addresses = []
 
             try:
                 trading_admissions = trading_admission_reader.read(head.id)
             except (UnexpectedBatch, StopIteration):
-                trading_admissions = ()
+                trading_admissions = []
             except exceptions.BadDocument as exc:
                 print('Error while reading trading admissions:', exc)
-                trading_admissions = ()
+                trading_admissions = []
 
             try:
                 issuer_company = issuer_company_reader.read(head.id, trading_admissions, addresses)
@@ -430,42 +430,42 @@ def _zip_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, Non
             try:
                 securities = security_reader.read(head.id)
             except (UnexpectedBatch, StopIteration):
-                securities = ()
+                securities = []
             except exceptions.BadDocument as exc:
                 print('Error while reading securities:', exc)
-                securities = ()
+                securities = []
 
             try:
                 auditors = auditor_reader.read(head.id)
             except (UnexpectedBatch, StopIteration):
-                auditors = ()
+                auditors = []
             except exceptions.BadDocument as exc:
                 print('Error while reading auditors:', exc)
-                auditors = ()
+                auditors = []
 
             try:
                 bookkeeping_agents = bookkeeping_agent_reader.read(head.id)
             except (UnexpectedBatch, StopIteration):
-                bookkeeping_agents = ()
+                bookkeeping_agents = []
             except exceptions.BadDocument as exc:
                 print('Error while reading bookkeeping agents:', exc)
-                bookkeeping_agents = ()
+                bookkeeping_agents = []
             
             try:
                 ird = ird_reader.read(head.id)
             except (UnexpectedBatch, StopIteration):
-                ird = ()
+                ird = []
             except exceptions.BadDocument as exc:
                 print('Error while reading IRD:', exc)
-                ird = ()
+                ird = []
 
             try:
                 shareholder_dept = shareholder_dept_reader.read(head.id)
             except (UnexpectedBatch, StopIteration):
-                shareholder_dept = ()
+                shareholder_dept = []
             except exceptions.BadDocument as exc:
                 print('Error while reading shareholder department:', exc)
-                shareholder_dept = ()
+                shareholder_dept = []
 
             yield datatypes.FCA(
                 cnpj                          = head.cnpj,
@@ -478,11 +478,11 @@ def _zip_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, Non
                 receipt_date                  = head.receipt_date,
                 url                           = head.url,
                 issuer_company                = issuer_company,
-                securities                    = tuple(securities),
-                auditors                      = tuple(auditors),
-                bookkeeping_agents            = tuple(bookkeeping_agents),
-                investor_relations_department = tuple(ird),
-                shareholder_department        = tuple(shareholder_dept)
+                securities                    = securities,
+                auditors                      = auditors,
+                bookkeeping_agents            = bookkeeping_agents,
+                investor_relations_department = ird,
+                shareholder_department        = shareholder_dept
             )
 
 def fca_reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str]) -> typing.Generator[datatypes.FCA, None, None]:

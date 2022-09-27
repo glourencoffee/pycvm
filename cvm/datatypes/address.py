@@ -6,7 +6,7 @@ __all__ = [
     'Address'
 ]
 
-@dataclasses.dataclass(init=True, frozen=True)
+@dataclasses.dataclass(init=True)
 class Address:
     street: str
     complement: str
