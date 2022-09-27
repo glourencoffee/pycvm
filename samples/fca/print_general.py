@@ -76,16 +76,16 @@ def print_shareholder_dept_person(person: cvm.ShareholderDepartmentPerson):
     print('    activity_ended:',   person.activity_ended)
     print('  }')
 
-def print_tuple(text: str, t, item_printer: typing.Callable[[typing.Any], None]):
+def print_list(text: str, l: list, item_printer: typing.Callable[[typing.Any], None]):
     print(text, ': ', sep='', end='')
 
-    if len(t) == 0:
+    if len(l) == 0:
         print('None')
         return
 
     print('[')
 
-    for item in t:
+    for item in l:
         item_printer(item)
     
     print(']')
@@ -97,11 +97,11 @@ def print_fca(fca: cvm.FCA):
     if fca.issuer_company is not None:
         print_company(fca.issuer_company)
 
-    print_tuple('Securities',               fca.securities,                    print_security)
-    print_tuple('Auditors',                 fca.auditors,                      print_auditor)
-    print_tuple('Bookkeeping Agents',       fca.bookkeeping_agents,            print_bookkeeping_agent)
-    print_tuple('Investors Relation Dept.', fca.investor_relations_department, print_ird_officer)
-    print_tuple('Shareholder Dept.',        fca.shareholder_department,        print_shareholder_dept_person)
+    print_list('Securities',               fca.securities,                    print_security)
+    print_list('Auditors',                 fca.auditors,                      print_auditor)
+    print_list('Bookkeeping Agents',       fca.bookkeeping_agents,            print_bookkeeping_agent)
+    print_list('Investors Relation Dept.', fca.investor_relations_department, print_ird_officer)
+    print_list('Shareholder Dept.',        fca.shareholder_department,        print_shareholder_dept_person)
 
 def main():
     if len(sys.argv) < 2:
