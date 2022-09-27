@@ -20,7 +20,6 @@ from cvm.exceptions          import ZipMemberError, NotImplementedException, Inv
 from cvm.utils               import date_from_string
 
 __all__ = [
-    'BalanceFlag',
     'dfpitr_reader'
 ]
 
@@ -312,11 +311,6 @@ class DMPLReader(StatementReader):
             accounts          = dmpl_accounts
         )
 
-class BalanceFlag(enum.IntFlag):
-    NONE         = 0
-    CONSOLIDATED = 1
-    INDIVIDUAL   = 2
-
 def _open_zip_member_on_stack(stack: contextlib.ExitStack, archive: zipfile.ZipFile, filename: str):
     member = archive.open(filename, mode='r')
     stream = io.TextIOWrapper(member, encoding='iso-8859-1')
@@ -352,7 +346,7 @@ def _read_all_statements(batch_id: int, readers: typing.List[typing.Tuple[Statem
     
     return all_statements
 
-def _zip_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DFPITR, None, None]:
+def _zip_reader(archive: zipfile.ZipFile, consolidated: bool, individual: bool) -> typing.Generator[DFPITR, None, None]:
     ################################################################################
     # The implementation below tries to read all the CSV files contained in the DFP
     # ZIP file simultaneously, taking advantage of the fact that data in these files
@@ -400,12 +394,12 @@ def _zip_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator
     with contextlib.ExitStack() as stack:
         head_reader = RegularDocumentHeadReader(_open_zip_member_on_stack(stack, archive, namelist.head))
 
-        if flag & BalanceFlag.INDIVIDUAL:
+        if individual:
             ind_readers = _make_readers(stack, archive, namelist.ind)
         else:
             ind_readers = {}
 
-        if flag & BalanceFlag.CONSOLIDATED:
+        if consolidated:
             con_readers = _make_readers(stack, archive, namelist.con)
         else:
             con_readers = {}
@@ -472,10 +466,11 @@ def _zip_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator
             )
 
 def dfpitr_reader(file: typing.Union[zipfile.ZipFile, typing.IO, os.PathLike, str],
-                  flag: BalanceFlag = BalanceFlag.CONSOLIDATED|BalanceFlag.INDIVIDUAL
+                  consolidated: bool = True,
+                  individual: bool = True
 ) -> typing.Generator[DFPITR, None, None]:
 
     if not isinstance(file, zipfile.ZipFile):
         file = zipfile.ZipFile(file, mode='r')
 
-    return _zip_reader(file, flag)
+    return _zip_reader(file, consolidated=consolidated, individual=individual)
