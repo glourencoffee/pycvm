@@ -1,27 +1,23 @@
 import dataclasses
 import typing
 import datetime
-from cvm import datatypes
+from enum import IntEnum, auto
+from cvm  import datatypes
 
 __all__ = [
     'IssuerStatus',
-    'IssuerAddressType',
     'IssuerCompany'
 ]
 
-class IssuerStatus(datatypes.DescriptiveIntEnum):
-    PRE_OPERATIONAL_PHASE           = (1, 'Fase Pré-Operacional')
-    OPERATIONAL_PHASE               = (2, 'Fase Operacional')
-    JUDICIAL_RECOVERY_OR_EQUIVALENT = (3, 'Em Recuperação Judicial ou Equivalente')
-    EXTRAJUDICIAL_RECOVERY          = (4, 'Em Recuperação Extrajudicial')
-    BANKRUPT                        = (5, 'Em Falência')
-    EXTRAJUDICIAL_LIQUIDATION       = (6, 'Em Liquidação Extrajudicial')
-    JUDICIAL_LIQUIDATION            = (7, 'Em Liquidação Judicial')
-    STALLED                         = (8, 'Paralisada')
-
-class IssuerAddressType(datatypes.DescriptiveIntEnum):
-    HEADQUARTER     = (1, 'Sede')
-    MAILING_ADDRESS = (2, 'Endereço para correspondência')
+class IssuerStatus(IntEnum):
+    PRE_OPERATIONAL_PHASE           = auto()
+    OPERATIONAL_PHASE               = auto()
+    JUDICIAL_RECOVERY_OR_EQUIVALENT = auto()
+    EXTRAJUDICIAL_RECOVERY          = auto()
+    BANKRUPT                        = auto()
+    EXTRAJUDICIAL_LIQUIDATION       = auto()
+    JUDICIAL_LIQUIDATION            = auto()
+    STALLED                         = auto()
 
 @dataclasses.dataclass(init=True, frozen=True)
 class IssuerCompany:

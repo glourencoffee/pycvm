@@ -12,7 +12,7 @@ class Address:
     complement: str
     district: str
     city: str
-    state: typing.Union[datatypes.FederatedState, str]
+    state: str
     country: typing.Optional[datatypes.Country]
     postal_code: int
 

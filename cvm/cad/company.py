@@ -6,7 +6,7 @@ import pprint
 from typing           import Optional, TextIO, Generator
 from datetime         import date
 from cvm.parsing.util import cnpj_to_int, date_from_string, read_optional, read_required
-from cvm.datatypes    import DescriptiveIntEnum, Phone, Address, AddressType, ControllingInterest, Manager, ManagerType
+from cvm.datatypes    import Phone, Address, AddressType, ControllingInterest, Manager, ManagerType
 
 class MarketType(enum.Enum):
     EXCHANGE         = 'BOLSA'

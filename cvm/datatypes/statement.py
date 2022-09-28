@@ -2,7 +2,8 @@ from __future__ import annotations
 import dataclasses
 import datetime
 import typing
-from cvm import datatypes
+from enum import IntEnum, auto
+from cvm  import datatypes
 
 __all__ = [
     'StatementType',
@@ -18,26 +19,26 @@ __all__ = [
     'GroupedStatementCollection'
 ]
 
-class StatementType(datatypes.DescriptiveIntEnum):
-    BPA  = (1, 'Balanço Patrimonial Ativo')
-    BPP  = (2, 'Balanço Patrimonial Passivo')
-    DRE  = (3, 'Demonstração de Resultado')
-    DRA  = (4, 'Demonstração de Resultado Abrangente')
-    DFC  = (5, 'Demonstração de Fluxo de Caixa')
-    DMPL = (6, 'Demonstração das Mutações do Patrimônio Líquido')
-    DVA  = (7, 'Demonstração de Valor Adicionado')
+class StatementType(IntEnum):
+    BPA  = auto() # 'Balanço Patrimonial Ativo'
+    BPP  = auto() # 'Balanço Patrimonial Passivo'
+    DRE  = auto() # 'Demonstração de Resultado'
+    DRA  = auto() # 'Demonstração de Resultado Abrangente'
+    DFC  = auto() # 'Demonstração de Fluxo de Caixa'
+    DMPL = auto() # 'Demonstração das Mutações do Patrimônio Líquido'
+    DVA  = auto() # 'Demonstração de Valor Adicionado'
 
-class BalanceType(datatypes.DescriptiveIntEnum):
-    INDIVIDUAL   = (0, 'Individual')
-    CONSOLIDATED = (1, 'Consolidado')
+class BalanceType(IntEnum):
+    INDIVIDUAL   = auto() # 'Individual'
+    CONSOLIDATED = auto() # 'Consolidado'
 
-class DFCMethod(datatypes.DescriptiveIntEnum):
-    DIRECT   = (1, 'Método Direto')
-    INDIRECT = (2, 'Método Indireto')
+class DFCMethod(IntEnum):
+    DIRECT   = auto() # 'Método Direto'
+    INDIRECT = auto() # 'Método Indireto'
 
-class FiscalYearOrder(datatypes.DescriptiveIntEnum):
-    LAST           = (1, 'Último')
-    SECOND_TO_LAST = (2, 'Penúltimo')
+class FiscalYearOrder(IntEnum):
+    LAST           = auto() # 'Último'
+    SECOND_TO_LAST = auto() # 'Penúltimo'
 
 @dataclasses.dataclass(init=True)
 class Statement:

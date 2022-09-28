@@ -1,13 +1,13 @@
-from cvm import datatypes
+from enum import IntEnum, auto
 
 __all__ = [
     'ControllingInterest'
 ]
 
-class ControllingInterest(datatypes.DescriptiveIntEnum):
-    GOVERNMENTAL         = (1, 'Estatal')
-    GOVERNMENTAL_HOLDING = (2, 'Estatal Holding')
-    FOREIGN              = (3, 'Estrangeiro')
-    FOREIGN_HOLDING      = (4, 'Estrangeiro Holding')
-    PRIVATE              = (5, 'Privado')
-    PRIVATE_HOLDING      = (6, 'Privado Holding')
+class ControllingInterest(IntEnum):
+    GOVERNMENTAL         = auto()
+    GOVERNMENTAL_HOLDING = auto()
+    FOREIGN              = auto()
+    FOREIGN_HOLDING      = auto()
+    PRIVATE              = auto()
+    PRIVATE_HOLDING      = auto()

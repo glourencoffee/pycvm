@@ -1,18 +1,18 @@
-from cvm import datatypes
+from enum import IntEnum, auto
 
 __all__ = [
     'RegistrationCategory',
     'RegistrationStatus'
 ]
 
-class RegistrationCategory(datatypes.DescriptiveIntEnum):
-    A       = (1, 'Categoria A')
-    B       = (2, 'Categoria B')
-    UNKNOWN = (99, 'Não Identificado')
+class RegistrationCategory(IntEnum):
+    A       = auto()
+    B       = auto()
+    UNKNOWN = auto()
 
-class RegistrationStatus(datatypes.DescriptiveIntEnum):
-    ACTIVE         = (1, 'Ativo')
-    UNDER_ANALYSIS = (2, 'Em análise')
-    NOT_GRANTED    = (3, 'Não concedido')
-    SUSPENDED      = (4, 'Suspenso')
-    CANCELED       = (5, 'Cancelada')
+class RegistrationStatus(IntEnum):
+    ACTIVE         = auto()
+    UNDER_ANALYSIS = auto()
+    NOT_GRANTED    = auto()
+    SUSPENDED      = auto()
+    CANCELED       = auto()

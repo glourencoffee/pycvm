@@ -1,7 +1,8 @@
 import dataclasses
 import datetime
 import typing
-from cvm import datatypes
+from enum import IntEnum, auto
+from cvm  import datatypes
 
 __all__ = [
     'SecurityType',
@@ -11,43 +12,39 @@ __all__ = [
     'Security'
 ]
 
-class SecurityType(datatypes.DescriptiveIntEnum):
-    STOCK                               = (1,  'Ações Ordinárias')
-    DEBENTURE                           = (2,  'Debêntures')
-    CONVERTIBLE_DEBENTURE               = (3,  'Debêntures conversíveis')
-    SUBCRIPTION_BONUS                   = (4,  'Bônus de subscrição')
-    PROMISSORY_NOTE                     = (5,  'Nota comercial')
-    COLLECTIVE_INVESTMENT_CONTRACT      = (6,  'Contrato de investimento coletivo')
-    SECURITIES_DEPOSITORY_RECEIPT       = (7,  'Certificados de depósito de valores mobiliários')
-    REAL_ESTATE_RECEIVABLE_CERTIFICATE  = (8,  'Certificados de recebíveis imobiliários')
-    AGRIBUSINESS_RECEIVABLE_CERTIFICATE = (9,  'Certificado de recebíveis do agronegócio')
-    COLLECTIVE_INVESTMENT_BOND          = (10, 'Título de investimento coletivo')
-    FINANCIAL_BILLS                     = (11, 'Letras Financeiras')
-    UNREGISTERED_SECURITY               = (12, 'Valor Mobiliário Não Registrado')
-    UNITS                               = (13, 'Units')
-    PREFERRED_SHARES                    = (14, 'Ações Preferenciais')
+class SecurityType(IntEnum):
+    STOCK                               = auto()
+    DEBENTURE                           = auto()
+    CONVERTIBLE_DEBENTURE               = auto()
+    SUBCRIPTION_BONUS                   = auto()
+    PROMISSORY_NOTE                     = auto()
+    COLLECTIVE_INVESTMENT_CONTRACT      = auto()
+    SECURITIES_DEPOSITORY_RECEIPT       = auto()
+    REAL_ESTATE_RECEIVABLE_CERTIFICATE  = auto()
+    AGRIBUSINESS_RECEIVABLE_CERTIFICATE = auto()
+    COLLECTIVE_INVESTMENT_BOND          = auto()
+    FINANCIAL_BILLS                     = auto()
+    UNREGISTERED_SECURITY               = auto()
+    UNITS                               = auto()
+    PREFERRED_SHARES                    = auto()
 
-class MarketType(datatypes.DescriptiveIntEnum):
-    NON_ORGANIZED_OTC = (1, 'Balcão não-organizado')
-    ORGANIZED_OTC     = (2, 'Balcão organizado')
-    STOCK_EXCHANGE    = (3, 'Bolsa')
+class MarketType(IntEnum):
+    NON_ORGANIZED_OTC = auto()
+    ORGANIZED_OTC     = auto()
+    STOCK_EXCHANGE    = auto()
 
-    @property
-    def is_organized(self) -> bool:
-        return self.value != MarketType.NON_ORGANIZED_OTC
+class MarketSegment(IntEnum):
+    NEW_MARKET              = auto()
+    CORPORATE_GOVERNANCE_L1 = auto()
+    CORPORATE_GOVERNANCE_L2 = auto()
+    BOVESPA_PLUS            = auto()
+    BOVESPA_PLUS_L2         = auto()
 
-class MarketSegment(datatypes.DescriptiveIntEnum):
-    NEW_MARKET                      = (1, 'Novo Mercado')
-    CORPORATE_GOVERNANCE_L1         = (2, 'Nível 1')
-    CORPORATE_GOVERNANCE_L2         = (3, 'Nível 2')
-    BOVESPA_PLUS                    = (4, 'Bovespa Mais')
-    BOVESPA_PLUS_L2                 = (5, 'Bovespa Mais Nível 2')
-
-class PreferredShareType(datatypes.DescriptiveIntEnum):
-    PNA = (1, 'Preferencial Classe A')
-    PNB = (2, 'Preferencial Classe B')
-    PNC = (3, 'Preferencial Classe C')
-    PNU = (4, 'Preferencial Classe U')
+class PreferredShareType(IntEnum):
+    PNA = auto()
+    PNB = auto()
+    PNC = auto()
+    PNU = auto()
 
 @dataclasses.dataclass(init=True, frozen=True)
 class Security:
