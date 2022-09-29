@@ -266,6 +266,7 @@ def _cvm_codes() -> typing.List[str]:
         '21717', # TARPON INVESTIMENTOS S.A.
         '21725', # ADVANCED DIGITAL HEALTH MEDICINA PREVENTIVA S.A.
         '21733', # CIELO S.A.
+        '21741', # ECO SECURITIZADORA DIREITOS CRED AGRONEGÓCIO S.A.
         '21776', # CENTENNIAL ASSET PARTICIPAÇÕES SUDESTE S/A
         '21792', # CETIP S.A. - BALCÃO ORGANIZADO DE ATIVOS E DERIVATIVOS
         '21806', # AGV HOLDING S/A
@@ -283,6 +284,8 @@ def _cvm_codes() -> typing.List[str]:
         '22187', # PETRO RIO S.A.
         '22209', # PASCRO PARTICIPAÇÕES S.A.
         '22217', # ALPER CONSULTORIA E CORRETORA DE SEGUROS S.A.
+        '22284', # MCM CIMENTOS S/A
+        '22292', # STEIN SP II PARTICIPAÇÕES S.A.
         '22330', # RJ CAPITAL PARTNERS S.A.
         '22349', # AREZZO INDÚSTRIA E COMÉRCIO S.A.
         '22357', # ALIANSCE SONAE SHOPPING CENTERS S.A.
@@ -304,6 +307,7 @@ def _cvm_codes() -> typing.List[str]:
         '22667', # NAOMI PARTICIPAÇÕES S.A.
         '22675', # HIDROVIAS DO BRASIL S.A.
         '22691', # CIA LOCAÇÃO DAS AMÉRICAS
+        '22756', # SAAG INVESTIMENTOS S.A.
         '22772', # VIGOR ALIMENTOS S.A.
         '22780', # UNICASA INDÚSTRIA DE MÓVEIS S.A.
         '22799', # SENIOR SOLUTION S.A.
@@ -323,6 +327,7 @@ def _cvm_codes() -> typing.List[str]:
         '23264', # AMBEV S.A.
         '23272', # LOG COMMERCIAL PROPERTIES E PARTICIPAÇÕES
         '23280', # OURO VERDE LOCACAO E SERVICO S.A.
+        '23299', # JP PARTICIPAÇÕES S.A.
         '23302', # QUALITY SOFTWARE S.A.
         '23310', # CVC BRASIL OPERADORA E AGÊNCIA DE VIAGENS S.A.
         '23396', # AEGEA SANEAMENTO E PARTICIPAÇÕES S.A.
@@ -384,6 +389,7 @@ def _cvm_codes() -> typing.List[str]:
         '24740', # COPEL GERAÇÃO E TRANSMISSÃO S.A.
         '24775', # BCBF PARTICIPAÇÕES S.A.
         '24783', # NATURA &CO HOLDING S.A.
+        '24805', # VIVARA PARTICIPAÇÕES S.A.
         '24813', # LOCALIZA FLEET S.A.
         '24821', # REDE D'OR SÃO LUIZ S.A.
         '24830', # BRK AMBIENTAL PARTICIPAÇÕES S.A.
@@ -435,6 +441,7 @@ def _cvm_codes() -> typing.List[str]:
         '25569', # ELETROMIDIA S.A.
         '25585', # CSN MINERAÇÃO S.A.
         '25658', # AGROGALAXY PARTICIPAÇÕES S.A.
+        '25739', # CS BRASIL PARTICIPAÇÕES E LOCAÇÕES S.A.
         '25763', # VITTIA FERTILIZANTES E BIOLÓGICOS S.A.
         '25836', # DOTZ S.A.
         '25852', # W2W E-COMMERCE DE VINHOS S.A.
