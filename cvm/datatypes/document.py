@@ -1,7 +1,8 @@
 import dataclasses
 import datetime
 import typing
-from cvm import datatypes
+from enum import IntEnum, auto
+from cvm  import datatypes
 
 __all__ = [
     'DocumentType',
@@ -10,10 +11,10 @@ __all__ = [
     'DFPITR'
 ]
 
-class DocumentType(datatypes.DescriptiveIntEnum):
-    FCA = (0, 'Formulário Cadastral')
-    DFP = (1, 'Demonstrações Fiscais Padronizadas')
-    ITR = (2, 'Informe Trimestral')
+class DocumentType(IntEnum):
+    FCA = auto() # Formulário Cadastral
+    DFP = auto() # Demonstrações Fiscais Padronizadas
+    ITR = auto() # Informe Trimestral
 
 @dataclasses.dataclass(init=True, repr=False)
 class RegularDocument:

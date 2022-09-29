@@ -4,6 +4,7 @@ import contextlib
 import datetime
 import decimal
 import enum
+import functools
 import io
 import os
 import typing
@@ -98,6 +99,41 @@ def _make_row_batch_id(cnpj: CNPJ, reference_date: datetime.date, version: int) 
     return zlib.crc32(hash_str.encode('utf-8'))
 
 class StatementReader(RegularDocumentBodyReader):
+    @staticmethod
+    @functools.lru_cache
+    def fiscal_year_orders() -> typing.Dict[str, FiscalYearOrder]:
+        return {
+            'ÚLTIMO':    FiscalYearOrder.LAST,
+            'PENÚLTIMO': FiscalYearOrder.SECOND_TO_LAST,
+        }
+
+    @staticmethod
+    @functools.lru_cache
+    def currencies() -> typing.Dict[str, Currency]:
+        return {
+            'REAL': Currency.BRL
+        }
+
+    @staticmethod
+    @functools.lru_cache
+    def currency_sizes() -> typing.Dict[str, CurrencySize]:
+        return {
+            'UNIDADE': CurrencySize.UNIT,
+            'MIL':     CurrencySize.THOUSAND,
+        }
+
+    @classmethod
+    def make_fiscal_year_order(cls, value: str) -> FiscalYearOrder:
+        return cls.fiscal_year_orders()[value]
+
+    @classmethod
+    def make_currency(cls, value: str) -> Currency:
+        return cls.currencies()[value]
+
+    @classmethod
+    def make_currency_size(cls, value: str) -> CurrencySize:
+        return cls.currency_sizes()[value]
+
     def batch_id(self, row: CSVRow) -> int:
         cnpj           = row.required('CNPJ_CIA', CNPJ.from_zfilled_with_separators)
         reference_date = row.required('DT_REFER', date_from_string)
@@ -159,9 +195,9 @@ class BPxReader(StatementReader):
         first_row = rows[0]
 
         return BPx(
-            fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
-            currency          = first_row.required('MOEDA',        Currency),
-            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
+            fiscal_year_order = first_row.required('ORDEM_EXERC',  self.make_fiscal_year_order),
+            currency          = first_row.required('MOEDA',        self.make_currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', self.make_currency_size),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
             accounts          = self.read_accounts(rows)
         )
@@ -174,9 +210,9 @@ class DRxDVAReader(StatementReader):
         first_row = rows[0]
 
         return DRxDVA(
-            fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
-            currency          = first_row.required('MOEDA',        Currency),
-            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
+            fiscal_year_order = first_row.required('ORDEM_EXERC',  self.make_fiscal_year_order),
+            currency          = first_row.required('MOEDA',        self.make_currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', self.make_currency_size),
             period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
             accounts          = self.read_accounts(rows)
@@ -198,12 +234,15 @@ class DFCReader(StatementReader):
         except IndexError:
             raise InvalidValueError(f"unexpected value '{statement_name}' at field 'GRUPO_DFP'") from None
 
-        dfc_method = DFCMethod(dfc_method_name)
+        if   dfc_method_name == 'Método Direto':   dfc_method = DFCMethod.DIRECT
+        elif dfc_method_name == 'Método Indireto': dfc_method = DFCMethod.INDIRECT
+        else:
+            raise InvalidValueError(f"unknown DFC method '{dfc_method_name}' at field 'GRUPO_DFP'")
 
         return DFC(
-            fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
-            currency          = first_row.required('MOEDA',        Currency),
-            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
+            fiscal_year_order = first_row.required('ORDEM_EXERC',  self.make_fiscal_year_order),
+            currency          = first_row.required('MOEDA',        self.make_currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', self.make_currency_size),
             method            = dfc_method,
             period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
@@ -305,9 +344,9 @@ class DMPLReader(StatementReader):
             dmpl_accounts.append(dmpl_account)
 
         return DMPL(
-            fiscal_year_order = first_row.required('ORDEM_EXERC',  FiscalYearOrder),
-            currency          = first_row.required('MOEDA',        Currency),
-            currency_size     = first_row.required('ESCALA_MOEDA', CurrencySize),
+            fiscal_year_order = first_row.required('ORDEM_EXERC',  self.make_fiscal_year_order),
+            currency          = first_row.required('MOEDA',        self.make_currency),
+            currency_size     = first_row.required('ESCALA_MOEDA', self.make_currency_size),
             period_start_date = first_row.required('DT_INI_EXERC', date_from_string),
             period_end_date   = first_row.required('DT_FIM_EXERC', date_from_string),
             accounts          = dmpl_accounts

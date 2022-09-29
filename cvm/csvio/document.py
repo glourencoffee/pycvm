@@ -13,14 +13,10 @@ class RegularDocumentHeadReader:
         row = CSVRow(row)
 
         strtype = row.required('CATEG_DOC', str)
-        doctype = None
 
-        for dt in datatypes.DocumentType:
-            if dt.name == strtype:
-                doctype = dt
-                break
-
-        if doctype is None:
+        try:
+            doctype = getattr(datatypes.DocumentType, strtype)
+        except AttributeError:
             raise exceptions.BadDocument(f"unknown document type '{strtype}'")
 
         return datatypes.RegularDocument(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import contextlib
+import functools
 import io
 import os
 import typing
@@ -8,6 +9,13 @@ from cvm                import datatypes, exceptions, utils
 from cvm.csvio.batch    import CSVBatch
 from cvm.csvio.document import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
 from cvm.csvio.row      import CSVRow
+from cvm.datatypes      import (
+    ControllingInterest, Country, SecurityType,
+    MarketType, MarketSegment, PreferredShareType,
+    InvestorRelationsOfficerType, IssuerStatus,
+    RegistrationCategory, RegistrationStatus,
+    Industry
+)
 
 __all__ = [
     'fca_reader',
@@ -60,6 +68,251 @@ class _MemberNameList:
                 raise zipfile.BadZipFile(f"unknown member file '{name}'")
 
 class CommonReader(RegularDocumentBodyReader):
+    @staticmethod
+    @functools.lru_cache
+    def countries() -> typing.Dict[str, Country]:
+        return {
+            'Afeganistão': Country.AF,
+            'África do Sul': Country.ZA,
+            'Albânia': Country.AL,
+            'Alemanha': Country.DE,
+            'Algéria': Country.DZ,
+            'Andorra': Country.AD,
+            'Angola': Country.AO,
+            'Anguilla': Country.AI,
+            'Antártida': Country.AQ,
+            'Antígua e Barbuda': Country.AG,
+            'Antilhas Holandesas': Country.AN,
+            'Arábia Saudita': Country.SA,
+            'Argentina': Country.AR,
+            'Armênia': Country.AM,
+            'Aruba': Country.AW,
+            'Austrália': Country.AU,
+            'Áustria': Country.AT,
+            'Azerbaijão': Country.AZ,
+            'Bahamas': Country.BS,
+            'Bahrein': Country.BH,
+            'Bangladesh': Country.BD,
+            'Barbados': Country.BB,
+            'Belarus': Country.BY,
+            'Bélgica': Country.BE,
+            'Belize': Country.BZ,
+            'Benin': Country.BJ,
+            'Bermudas': Country.BM,
+            'Bolívia': Country.BO,
+            'Bósnia-Herzegóvina': Country.BA,
+            'Botsuana': Country.BW,
+            'Brasil': Country.BR,
+            'Brunei': Country.BN,
+            'Bulgária': Country.BG,
+            'Burkina Fasso': Country.BF,
+            'Burundi': Country.BI,
+            'Butão': Country.BT,
+            'Cabo Verde': Country.CV,
+            'Camarões': Country.CM,
+            'Camboja': Country.KH,
+            'Canadá': Country.CA,
+            'Cazaquistão': Country.KZ,
+            'Chade': Country.TD,
+            'Chile': Country.CL,
+            'China': Country.CN,
+            'Chipre': Country.CY,
+            'Singapura': Country.SG,
+            'Colômbia': Country.CO,
+            'Congo': Country.CG,
+            'Coréia do Norte': Country.KP,
+            'Coréia do Sul': Country.KR,
+            'Costa do Marfim': Country.CI,
+            'Costa Rica': Country.CR,
+            'Croácia (Hrvatska)': Country.HR,
+            'Cuba': Country.CU,
+            'Dinamarca': Country.DK,
+            'Djibuti': Country.DJ,
+            'Dominica': Country.DM,
+            'Egito': Country.EG,
+            'El Salvador': Country.SV,
+            'Emirados Árabes Unidos': Country.AE,
+            'Equador': Country.EC,
+            'Eritréia': Country.ER,
+            'Eslováquia': Country.SK,
+            'Eslovênia': Country.SI,
+            'Espanha': Country.ES,
+            'Estados Unidos': Country.US,
+            'Estônia': Country.EE,
+            'Etiópia': Country.ET,
+            'Federação Russa': Country.RU,
+            'Fiji': Country.FJ,
+            'Filipinas': Country.PH,
+            'Finlândia': Country.FI,
+            'França': Country.FR,
+            'França Metropolitana': Country.FX,
+            'Gabão': Country.GA,
+            'Gâmbia': Country.GM,
+            'Gana': Country.GH,
+            'Geórgia': Country.GE,
+            'Gibraltar': Country.GI,
+            'Grã-Bretanha (Reino Unido, UK)': Country.GB,
+            'Granada': Country.GD,
+            'Grécia': Country.GR,
+            'Groelândia': Country.GL,
+            'Guadalupe': Country.GP,
+            'Guam (Território dos Estados Unidos)': Country.GU,
+            'Guatemala': Country.GT,
+            'Guiana': Country.GY,
+            'Guiana Francesa': Country.GF,
+            'Guiné': Country.GN,
+            'Guiné Equatorial': Country.GQ,
+            'Guiné-Bissau': Country.GW,
+            'Haiti': Country.HT,
+            'Holanda': Country.NL,
+            'Honduras': Country.HN,
+            'Hong Kong': Country.HK,
+            'Hungria': Country.HU,
+            'Iêmen': Country.YE,
+            'Ilha Bouvet (Território da Noruega)': Country.BV,
+            'Ilha Natal': Country.CX,
+            'Ilha Pitcairn': Country.PN,
+            'Ilha Reunião': Country.RE,
+            'Ilhas Cayman': Country.KY,
+            'Ilhas Cocos': Country.CC,
+            'Ilhas Comores': Country.KM,
+            'Ilhas Cook': Country.CK,
+            'Ilhas Faeroes': Country.FO,
+            'Ilhas Falkland (Malvinas)': Country.FK,
+            'Ilhas Geórgia do Sul e Sandwich do Sul': Country.GS,
+            'Ilhas Heard e McDonald (Território da Austrália)': Country.HM,
+            'Ilhas Marianas do Norte': Country.MP,
+            'Ilhas Marshall': Country.MH,
+            'Ilhas Menores dos Estados Unidos': Country.UM,
+            'Ilhas Norfolk': Country.NF,
+            'Ilhas Seychelles': Country.SC,
+            'Ilhas Solomão': Country.SB,
+            'Ilhas Svalbard e Jan Mayen': Country.SJ,
+            'Ilhas Tokelau': Country.TK,
+            'Ilhas Turks e Caicos': Country.TC,
+            'Ilhas Virgens (Estados Unidos)': Country.VI,
+            'Ilhas Virgens (Britânicas)': Country.VG,
+            'Ilhas Wallis e Futuna': Country.WF,
+            'índia': Country.IN,
+            'Indonésia': Country.ID,
+            'Irã': Country.IR,
+            'Iraque': Country.IQ,
+            'Irlanda': Country.IE,
+            'Islândia': Country.IS,
+            'Israel': Country.IL,
+            'Itália': Country.IT,
+            'Iugoslávia': Country.YU,
+            'Jamaica': Country.JM,
+            'Japão': Country.JP,
+            'Jordânia': Country.JO,
+            'Kênia': Country.KE,
+            'Kiribati': Country.KI,
+            'Kuait': Country.KW,
+            'Laos': Country.LA,
+            'Látvia': Country.LV,
+            'Lesoto': Country.LS,
+            'Líbano': Country.LB,
+            'Libéria': Country.LR,
+            'Líbia': Country.LY,
+            'Liechtenstein': Country.LI,
+            'Lituânia': Country.LT,
+            'Luxemburgo': Country.LU,
+            'Macau': Country.MO,
+            'Macedônia': Country.MK,
+            'Madagascar': Country.MG,
+            'Malásia': Country.MY,
+            'Malaui': Country.MW,
+            'Maldivas': Country.MV,
+            'Mali': Country.ML,
+            'Malta': Country.MT,
+            'Marrocos': Country.MA,
+            'Martinica': Country.MQ,
+            'Maurício': Country.MU,
+            'Mauritânia': Country.MR,
+            'Mayotte': Country.YT,
+            'México': Country.MX,
+            'Micronésia': Country.FM,
+            'Moçambique': Country.MZ,
+            'Moldova': Country.MD,
+            'Mônaco': Country.MC,
+            'Mongólia': Country.MN,
+            'Montserrat': Country.MS,
+            'Myanma': Country.MM,
+            'Namíbia': Country.NA,
+            'Nauru': Country.NR,
+            'Nepal': Country.NP,
+            'Nicarágua': Country.NI,
+            'Níger': Country.NE,
+            'Nigéria': Country.NG,
+            'Niue': Country.NU,
+            'Noruega': Country.NO,
+            'Nova Caledônia': Country.NC,
+            'Nova Zelândia': Country.NZ,
+            'Omã': Country.OM,
+            'Palau': Country.PW,
+            'Panamá': Country.PA,
+            'Papua-Nova Guiné': Country.PG,
+            'Paquistão': Country.PK,
+            'Paraguai': Country.PY,
+            'Peru': Country.PE,
+            'Polinésia Francesa': Country.PF,
+            'Polônia': Country.PL,
+            'Porto Rico': Country.PR,
+            'Portugal': Country.PT,
+            'Qatar': Country.QA,
+            'Quirguistão': Country.KG,
+            'República Centro-Africana': Country.CF,
+            'República Dominicana': Country.DO,
+            'República Tcheca': Country.CZ,
+            'Romênia': Country.RO,
+            'Ruanda': Country.RW,
+            'Saara Ocidental': Country.EH,
+            'Saint Vincente e Granadinas': Country.VC,
+            'Samoa Ocidental': Country.AS,
+            'Samoa Ocidental': Country.WS,
+            'San Marino': Country.SM,
+            'Santa Helena': Country.SH,
+            'Santa Lúcia': Country.LC,
+            'São Cristóvão e Névis': Country.KN,
+            'São Tomé e Príncipe': Country.ST,
+            'Senegal': Country.SN,
+            'Serra Leoa': Country.SL,
+            'Síria': Country.SY,
+            'Somália': Country.SO,
+            'Sri Lanka': Country.LK,
+            'St. Pierre and Miquelon': Country.PM,
+            'Suazilândia': Country.SZ,
+            'Sudão': Country.SD,
+            'Suécia': Country.SE,
+            'Suíça': Country.CH,
+            'Suriname': Country.SR,
+            'Tadjiquistão': Country.TJ,
+            'Tailândia': Country.TH,
+            'Taiwan': Country.TW,
+            'Tanzânia': Country.TZ,
+            'Território Britânico do Oceano índico': Country.IO,
+            'Territórios do Sul da França': Country.TF,
+            'Timor Leste': Country.TP,
+            'Togo': Country.TG,
+            'Tonga': Country.TO,
+            'Trinidad and Tobago': Country.TT,
+            'Tunísia': Country.TN,
+            'Turcomenistão': Country.TM,
+            'Turquia': Country.TR,
+            'Tuvalu': Country.TV,
+            'Ucrânia': Country.UA,
+            'Uganda': Country.UG,
+            'Uruguai': Country.UY,
+            'Uzbequistão': Country.UZ,
+            'Vanuatu': Country.VU,
+            'Vaticano': Country.VA,
+            'Venezuela': Country.VE,
+            'Vietnã': Country.VN,
+            'Zaire': Country.ZR,
+            'Zâmbia': Country.ZM,
+            'Zimbábue': Country.ZW,
+        }
+
     @classmethod
     def read_country(cls, row: CSVRow, fieldname: str) -> typing.Optional[datatypes.Country]:
         country_name = row[fieldname]
@@ -68,8 +321,8 @@ class CommonReader(RegularDocumentBodyReader):
             return None
 
         try:
-            return datatypes.Country(country_name)
-        except ValueError:
+            return cls.countries()[country_name]
+        except KeyError:
             #===========================================================
             # Below is what happens when you don't enforce valid country
             # names at GUI level, but instead let user type out country
@@ -222,6 +475,316 @@ class TradingAdmissionReader(CommonReader):
 class IssuerCompanyReader(CommonReader):
     """'fca_cia_aberta_geral_YYYY.csv'"""
 
+    @staticmethod
+    @functools.lru_cache
+    def controlling_interests() -> typing.Dict[str, ControllingInterest]:
+        return {
+            'Estatal':              ControllingInterest.GOVERNMENTAL,
+            'Estatal Holding':      ControllingInterest.GOVERNMENTAL_HOLDING,
+            'Estrangeiro':          ControllingInterest.FOREIGN,
+            'Estrangeiro Holding':  ControllingInterest.FOREIGN_HOLDING,
+            'Privado':              ControllingInterest.PRIVATE,
+            'Privado Holding':      ControllingInterest.PRIVATE_HOLDING,
+        }
+
+    @staticmethod
+    @functools.lru_cache
+    def issuer_statuses() -> typing.Dict[str, IssuerStatus]:
+        return {
+            'Fase Pré-Operacional':                   IssuerStatus.PRE_OPERATIONAL_PHASE,
+            'Fase Operacional':                       IssuerStatus.OPERATIONAL_PHASE,
+            'Em Recuperação Judicial ou Equivalente': IssuerStatus.JUDICIAL_RECOVERY_OR_EQUIVALENT,
+            'Em Recuperação Extrajudicial':           IssuerStatus.EXTRAJUDICIAL_RECOVERY,
+            'Em Falência':                            IssuerStatus.BANKRUPT,
+            'Em Liquidação Extrajudicial':            IssuerStatus.EXTRAJUDICIAL_LIQUIDATION,
+            'Em liquidação judicial':                 IssuerStatus.JUDICIAL_LIQUIDATION,
+            'Paralisada':                             IssuerStatus.STALLED,
+        }
+
+    @staticmethod
+    @functools.lru_cache
+    def registration_categories() -> typing.Dict[str, RegistrationCategory]:
+        return {
+            'Categoria A': RegistrationCategory.A,
+            'Categoria B': RegistrationCategory.B,
+            'Não Identificado': RegistrationCategory.UNKNOWN,
+        }
+
+    @staticmethod
+    @functools.lru_cache
+    def registration_statuses() -> typing.Dict[str, RegistrationStatus]:
+        return {
+            'Ativo':         RegistrationStatus.ACTIVE,
+            'Em análise':    RegistrationStatus.UNDER_ANALYSIS,
+            'Não concedido': RegistrationStatus.NOT_GRANTED,
+            'Suspenso':      RegistrationStatus.SUSPENDED,
+            'Cancelada':     RegistrationStatus.CANCELED,
+        }
+
+    @staticmethod
+    @functools.lru_cache
+    def industries() -> typing.Dict[str, Industry]:
+        return {
+            'Petróleo e Gás':
+                Industry.OIL_AND_GAS,
+
+            'Petroquímicos e Borracha':
+                Industry.PETROCHEMICAL_AND_RUBBER,
+
+            'Extração Mineral':
+                Industry.MINERAL_EXTRACTION,
+
+            'Papel e Celulose':
+                Industry.PULP_AND_PAPER,
+
+            'Têxtil e Vestuário':
+                Industry.TEXTILE_AND_CLOTHING,
+
+            'Metalurgia e Siderurgia':
+                Industry.METALLURGY_AND_STEELMAKING,
+
+            'Máquinas, Equipamentos, Veículos e Peças':
+                Industry.MACHINERY_EQUIPMENT_VEHICLE_AND_PARTS,
+
+            'Farmacêutico e Higiene':
+                Industry.PHARMACEUTICAL_AND_HYGIENE,
+
+            'Bebidas e Fumo':
+                Industry.BEVERAGES_AND_TOBACCO,
+
+            'Gráficas e Editoras':
+                Industry.PRINTERS_AND_PUBLISHERS,
+
+            'Construção Civil, Mat. Constr. e Decoração':
+                Industry.CIVIL_CONSTRUCTION_BUILDING_AND_DECORATION_MATERIALS,
+
+            'Energia Elétrica':
+                Industry.ELETRICITY,
+
+            'Telecomunicações':
+                Industry.TELECOMMUNICATIONS,
+
+            'Serviços Transporte e Logística':
+                Industry.TRANSPORT_AND_LOGISTICS_SERVICES,
+
+            'Comunicação e Informática':
+                Industry.COMMUNICATION_AND_INFORMATION_TECHNOLOGY,
+
+            'Saneamento, Serv. Água e Gás':
+                Industry.SANITATION_WATER_AND_GAS_SERVICES,
+
+            'Serviços médicos':
+                Industry.MEDICAL_SERVICES,
+
+            'Hospedagem e Turismo':
+                Industry.HOSTING_AND_TOURISM,
+
+            'Comércio (Atacado e Varejo)':
+                Industry.WHOLESAIL_AND_RETAIL_COMMERCE,
+
+            'Comércio Exterior':
+                Industry.FOREIGN_COMMERCE,
+
+            'Agricultura (Açúcar, Álcool e Cana)':
+                Industry.AGRICULTURE,
+
+            'Alimentos':
+                Industry.FOOD,
+
+            'Cooperativas':
+                Industry.COOPERATIVES,
+
+            'Bancos':
+                Industry.BANKS,
+
+            'Seguradoras e Corretoras':
+                Industry.INSURANCE_AND_BROKERAGE_COMPANIES,
+
+            'Arrendamento Mercantil':
+                Industry.LEASING,
+
+            'Previdência Privada':
+                Industry.PRIVATE_PENSION,
+
+            'Intermediação Financeira':
+                Industry.FINANCIAL_INTERMEDIATION,
+
+            'Factoring':
+                Industry.FACTORING,
+
+            'Crédito Imobiliário':
+                Industry.REAL_ESTATE_CREDIT,
+
+            'Reflorestamento':
+                Industry.REFORESTATION,
+
+            'Pesca':
+                Industry.FISHING,
+
+            'Embalagens':
+                Industry.PACKAGING,
+
+            'Educação':
+                Industry.EDUCATION,
+
+            'Securitização de Recebíveis':
+                Industry.SECURITIZATION_OF_RECEIVABLES,
+
+            'Brinquedos e Lazer':
+                Industry.TOYS_AND_RECREATIONAL,
+
+            'Bolsas de Valores/Mercadorias e Futuros':
+                Industry.STOCK_EXCHANGES,
+
+            # Enterprises, Administration, and Participation (EAP)
+            'Emp. Adm. Part. - Petróleo e Gás':
+                Industry.EAP_OIL_AND_GAS,
+
+            'Emp. Adm. Part. - Petroquímicos e Borracha':
+                Industry.EAP_PETROCHEMICAL_AND_RUBBER,
+
+            'Emp. Adm. Part. - Extração Mineral':
+                Industry.EAP_MINERAL_EXTRACTION,
+
+            'Emp. Adm. Part. - Papel e Celulose':
+                Industry.EAP_PULP_AND_PAPER,
+
+            'Emp. Adm. Part. - Têxtil e Vestuário':
+                Industry.EAP_TEXTILE_AND_CLOTHING,
+
+            'Emp. Adm. Part. - Metalurgia e Siderurgia':
+                Industry.EAP_METALLURGY_AND_STEELMAKING,
+
+            'Emp. Adm. Part. - Máqs., Equip., Veíc. e Peças':
+                Industry.EAP_MACHINERY_EQUIPMENT_VEHICLE_AND_PARTS,
+
+            'Emp. Adm. Part. - Farmacêutico e Higiene':
+                Industry.EAP_PHARMACEUTICAL_AND_HYGIENE,
+
+            'Emp. Adm. Part. - Bebidas e Fumo':
+                Industry.EAP_BEVERAGES_AND_TOBACCO,
+
+            'Emp. Adm. Part. - Gráficas e Editoras':
+                Industry.EAP_PRINTERS_AND_PUBLISHERS,
+
+            'Emp. Adm. Part. - Const. Civil, Mat. Const. e Decoração':
+                Industry.EAP_CIVIL_CONSTRUCTION_BUILDING_AND_DECORATION_MATERIALS,
+
+            'Emp. Adm. Part. - Energia Elétrica':
+                Industry.EAP_ELETRICITY,
+
+            'Emp. Adm. Part. - Telecomunicações':
+                Industry.EAP_TELECOMMUNICATIONS,
+
+            'Emp. Adm. Part. - Serviços Transporte e Logística':
+                Industry.EAP_TRANSPORT_AND_LOGISTICS_SERVICES,
+
+            'Emp. Adm. Part. - Comunicação e Informática':
+                Industry.EAP_COMMUNICATION_AND_INFORMATION_TECHNOLOGY,
+
+            'Emp. Adm. Part. - Saneamento, Serv. Água e Gás':
+                Industry.EAP_SANITATION_WATER_AND_GAS_SERVICES,
+
+            'Emp. Adm. Part. - Serviços médicos':
+                Industry.EAP_MEDICAL_SERVICES,
+
+            'Emp. Adm. Part. - Hospedagem e Turismo':
+                Industry.EAP_HOSTING_AND_TOURISM,
+
+            'Emp. Adm. Part. - Comércio (Atacado e Varejo)':
+                Industry.EAP_WHOLESAIL_AND_RETAIL_COMMERCE,
+
+            'Emp. Adm. Part. - Comércio Exterior':
+                Industry.EAP_FOREIGN_COMMERCE,
+
+            'Emp. Adm. Part. - Agricultura (Açúcar, Álcool e Cana)':
+                Industry.EAP_AGRICULTURE,
+
+            'Emp. Adm. Part. - Alimentos':
+                Industry.EAP_FOOD,
+
+            'Emp. Adm. Part. - Cooperativas':
+                Industry.EAP_COOPERATIVES,
+
+            'Emp. Adm. Part. - Bancos':
+                Industry.EAP_BANKS,
+
+            'Emp. Adm. Part. - Seguradoras e Corretoras':
+                Industry.EAP_INSURANCE_AND_BROKERAGE_COMPANIES,
+
+            'Emp. Adm. Part. - Arrendamento Mercantil':
+                Industry.EAP_LEASING,
+
+            'Emp. Adm. Part. - Previdência Privada':
+                Industry.EAP_PRIVATE_PENSION,
+
+            'Emp. Adm. Part. - Intermediação Financeira':
+                Industry.EAP_FINANCIAL_INTERMEDIATION,
+
+            'Emp. Adm. Part. - Factoring':
+                Industry.EAP_FACTORING,
+
+            'Emp. Adm. Part. - Crédito Imobiliário':
+                Industry.EAP_REAL_ESTATE_CREDIT,
+
+            'Emp. Adm. Part. - Reflorestamento':
+                Industry.EAP_REFORESTATION,
+
+            'Emp. Adm. Part. - Pesca':
+                Industry.EAP_FISHING,
+
+            'Emp. Adm. Part. - Embalagens':
+                Industry.EAP_PACKAGING,
+
+            'Emp. Adm. Part. - Educação':
+                Industry.EAP_EDUCATION,
+
+            'Emp. Adm. Part. - Securitização de Recebíveis':
+                Industry.EAP_SECURITIZATION_OF_RECEIVABLES,
+
+            'Emp. Adm. Part. - Brinquedos e Lazer':
+                Industry.EAP_TOYS_AND_RECREATIONAL,
+
+            'Emp. Adm. Part.-Bolsas de Valores/Mercadorias e Futuros':
+                Industry.EAP_STOCK_EXCHANGES,
+
+            'Emp. Adm. Part. - Sem Setor Principal':
+                Industry.EAP_NO_CORE_BUSINESS,
+
+            # Old descriptions
+            'Serviços Diversos':
+                Industry.MISCELLANEOUS_SERVICES,
+
+            'Emp. Adm. Participações':
+                Industry.EAP,
+
+            'Outras Atividades Industriais':
+                Industry.OTHER_INDUSTRIAL_ACTIVITIES,
+
+            'Serviços em Geral':
+                Industry.GENERAL_SERVICES,
+        }
+
+    @classmethod
+    def make_controlling_interest(cls, value: str) -> ControllingInterest:
+        return cls.controlling_interests()[value]
+
+    @classmethod
+    def make_issuer_status(cls, value: str) -> IssuerStatus:
+        return cls.issuer_statuses()[value]
+
+    @classmethod
+    def make_registration_category(cls, value: str) -> RegistrationCategory:
+        return cls.registration_categories()[value]
+
+    @classmethod
+    def make_registration_status(cls, value: str) -> RegistrationStatus:
+        return cls.registration_statuses()[value]
+
+    @classmethod
+    def make_industry(cls, value: str) -> Industry:
+        return cls.industries()[value]
+
     def read(self,
              document_id: int,
              trading_admissions: typing.List[datatypes.TradingAdmission],
@@ -239,17 +802,17 @@ class IssuerCompanyReader(CommonReader):
             cnpj                              = row.required('CNPJ_Companhia',                    datatypes.CNPJ.from_zfilled_with_separators),
             cvm_code                          = row.required('Codigo_CVM',                        utils.lzstrip),
             cvm_registration_date             = row.required('Data_Registro_CVM',                 utils.date_from_string),
-            cvm_registration_category         = row.required('Categoria_Registro_CVM',            datatypes.RegistrationCategory),
+            cvm_registration_category         = row.required('Categoria_Registro_CVM',            self.make_registration_category),
             cvm_registration_category_started = row.required('Data_Categoria_Registro_CVM',       utils.date_from_string),
-            cvm_registration_status           = row.required('Situacao_Registro_CVM',             datatypes.RegistrationStatus),
+            cvm_registration_status           = row.required('Situacao_Registro_CVM',             self.make_registration_status),
             cvm_registration_status_started   = row.required('Data_Situacao_Registro_CVM',        utils.date_from_string),
             home_country                      = self.read_country(row, 'Pais_Origem'),
             securities_custody_country        = self.read_country(row, 'Pais_Custodia_Valores_Mobiliarios'),
             trading_admissions                = trading_admissions,
-            industry                          = row.required('Setor_Atividade',                   datatypes.Industry),
-            issuer_status                     = row.required('Situacao_Emissor',                  datatypes.IssuerStatus),
+            industry                          = row.required('Setor_Atividade',                   self.make_industry),
+            issuer_status                     = row.required('Situacao_Emissor',                  self.make_issuer_status),
             issuer_status_started             = row.required('Data_Situacao_Emissor',             utils.date_from_string),
-            controlling_interest              = row.required('Especie_Controle_Acionario',        datatypes.ControllingInterest),
+            controlling_interest              = row.required('Especie_Controle_Acionario',        self.make_controlling_interest),
             controlling_interest_last_changed = row.optional('Data_Especie_Controle_Acionario',   utils.date_from_string),
             fiscal_year_end_day               = row.required('Dia_Encerramento_Exercicio_Social', int),
             fiscal_year_end_month             = row.required('Mes_Encerramento_Exercicio_Social', int),
@@ -263,19 +826,87 @@ class IssuerCompanyReader(CommonReader):
 class SecurityReader(CommonReader):
     """'fca_cia_aberta_valor_mobiliario_YYYY.csv'"""
 
+    @staticmethod
+    @functools.lru_cache
+    def security_types() -> typing.Dict[str, SecurityType]:
+        return {
+            'Ações Ordinárias':                                  SecurityType.STOCK,
+            'Debêntures':                                        SecurityType.DEBENTURE,
+            'Debêntures Conversíveis':                           SecurityType.CONVERTIBLE_DEBENTURE,
+            'Bônus de Subscrição':                               SecurityType.SUBCRIPTION_BONUS,
+            'Nota Comercial':                                    SecurityType.PROMISSORY_NOTE,
+            'Contrato de Investimento Coletivo':                 SecurityType.COLLECTIVE_INVESTMENT_CONTRACT,
+            'Certificados de Depósito de Valores Mobiliários':   SecurityType.SECURITIES_DEPOSITORY_RECEIPT,
+            'Certificados de depósito de valores mobiliários':   SecurityType.SECURITIES_DEPOSITORY_RECEIPT,
+            'Certificados de Recebíveis Imobiliários':           SecurityType.REAL_ESTATE_RECEIVABLE_CERTIFICATE,
+            'Certificado de Recebíveis do Agronegócio':          SecurityType.AGRIBUSINESS_RECEIVABLE_CERTIFICATE,
+            'Título de Investimento Coletivo':                   SecurityType.COLLECTIVE_INVESTMENT_BOND,
+            'Letras Financeiras':                                SecurityType.FINANCIAL_BILLS,
+            'Valor Mobiliário Não Registrado':                   SecurityType.UNREGISTERED_SECURITY,
+            'Units':                                             SecurityType.UNITS,
+            'Ações Preferenciais':                               SecurityType.PREFERRED_SHARES,
+        }
+
+    
+    @staticmethod
+    @functools.lru_cache
+    def market_types() -> typing.Dict[str, MarketType]:
+        return {
+            'Balcão Não-Organizado': MarketType.NON_ORGANIZED_OTC,
+            'Balcão Organizado':     MarketType.ORGANIZED_OTC,
+            'Bolsa':                 MarketType.STOCK_EXCHANGE,
+        }
+    
+    @staticmethod
+    @functools.lru_cache
+    def market_segments() -> typing.Dict[str, MarketSegment]:
+        return {
+            'Novo Mercado':                      MarketSegment.NEW_MARKET,
+            'Nível 1 de Governança Corporativa': MarketSegment.CORPORATE_GOVERNANCE_L1,
+            'Nível 2 de Governança Corporativa': MarketSegment.CORPORATE_GOVERNANCE_L2,
+            'Bovespa Mais':                      MarketSegment.BOVESPA_PLUS,
+            'Bovespa Mais N2':                   MarketSegment.BOVESPA_PLUS_L2,
+        }
+
+    @staticmethod
+    @functools.lru_cache
+    def preferred_share_types() -> typing.Dict[str, PreferredShareType]:
+        return {
+            'Preferencial Classe A': PreferredShareType.PNA,
+            'Preferencial Classe B': PreferredShareType.PNB,
+            'Preferencial Classe C': PreferredShareType.PNC,
+            'Preferencial Classe U': PreferredShareType.PNU,
+        }
+
+    @classmethod
+    def make_security_type(cls, value: str) -> SecurityType:
+        return cls.security_types()[value]
+
+    @classmethod
+    def make_market_type(cls, value: str) -> MarketType:
+        return cls.market_types()[value]
+
+    @classmethod
+    def make_market_segment(cls, value: str) -> MarketSegment:
+        return cls.market_segments()[value]
+
+    @classmethod
+    def make_preferred_share_type(cls, value: str) -> PreferredShareType:
+        return cls.preferred_share_types()[value]
+
     @classmethod
     def read_security(cls, row: CSVRow) -> datatypes.Security:
         return datatypes.Security(
-            type                          = row.required('Valor_Mobiliario',              datatypes.SecurityType),
-            market_type                   = row.required('Mercado',                       datatypes.MarketType),
+            type                          = row.required('Valor_Mobiliario',              cls.make_security_type),
+            market_type                   = row.required('Mercado',                       cls.make_market_type),
             market_managing_entity_symbol = row.required('Sigla_Entidade_Administradora', str),
             market_managing_entity_name   = row.required('Entidade_Administradora',       str),
-            preferred_share_type          = row.optional('Classe_Acao_Preferencial',      datatypes.PreferredShareType),
+            preferred_share_type          = row.optional('Classe_Acao_Preferencial',      cls.make_preferred_share_type, allow_empty_string=False),
             bdr_unit_composition          = row.optional('Composicao_BDR_Unit',           str),
             trading_symbol                = row.optional('Codigo_Negociacao',             str),
             trading_started               = row.optional('Data_Inicio_Negociacao',        utils.date_from_string),
             trading_ended                 = row.optional('Data_Fim_Negociacao',           utils.date_from_string),
-            market_segment                = row.optional('Segmento',                      datatypes.MarketSegment),
+            market_segment                = row.optional('Segmento',                      cls.make_market_segment, allow_empty_string=False),
             listing_started               = row.optional('Data_Inicio_Listagem',          utils.date_from_string),
             listing_ended                 = row.optional('Data_Fim_Listagem',             utils.date_from_string)
         )
@@ -342,10 +973,29 @@ class BookkeepingAgentReader(CommonReader):
 class InvestorRelationsDepartmentReader(CommonReader):
     """'fca_cia_aberta_dri_YYYY.csv'"""
 
+    @staticmethod
+    @functools.lru_cache
+    def officer_types() -> typing.Dict[str, InvestorRelationsOfficerType]:
+        return {
+            'Diretor de Relações com Investidores':              InvestorRelationsOfficerType.INVESTOR_RELATIONS_OFFICER,
+            'Liquidante':                                        InvestorRelationsOfficerType.LIQUIDATOR,
+            'Administrador Judicial':                            InvestorRelationsOfficerType.JUDICIAL_ADMINISTRATOR,
+            'Gestor Judicial':                                   InvestorRelationsOfficerType.TRUSTEE,
+            'Síndico':                                           InvestorRelationsOfficerType.SYNDIC,
+            'Representante Legal (para emissores estrangeiros)': InvestorRelationsOfficerType.LEGAL_REPRESENTATIVE,
+            'Interventor':                                       InvestorRelationsOfficerType.INTERVENTOR,
+            'Administrador Especial Temporário':                 InvestorRelationsOfficerType.SPECIAL_TEMP_ADMINISTRATOR,
+            'Cargo Vago':                                        InvestorRelationsOfficerType.VACANT_POSITION,
+        }
+
+    @classmethod
+    def make_officer_type(cls, value: str) -> InvestorRelationsOfficerType:
+        return cls.officer_types()[value]
+
     @classmethod
     def read_investor_relations_officer(cls, row: CSVRow) -> datatypes.InvestorRelationsOfficer:
         return datatypes.InvestorRelationsOfficer(
-            type             = row.required('Tipo_Responsavel', datatypes.InvestorRelationsOfficerType),
+            type             = row.required('Tipo_Responsavel', cls.make_officer_type),
             name             = row.required('Responsavel',      str),
             cpf              = row.required('CPF_Responsavel',  datatypes.CPF.from_zfilled_with_separators),
             address          = cls.read_address(row),

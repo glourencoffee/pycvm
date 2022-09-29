@@ -1,90 +1,106 @@
-from cvm import datatypes
+from __future__ import annotations
+from enum import IntEnum
 
 __all__ = [
     'Industry'
 ]
 
-class Industry(datatypes.DescriptiveIntEnum):
-    OIL_AND_GAS                                          = (1010, 'Petróleo e Gás')
-    PETROCHEMICAL_AND_RUBBER                             = (1020, 'Petroquímicos e Borracha')
-    MINERAL_EXTRACTION                                   = (1030, 'Extração Mineral')
-    PULP_AND_PAPER                                       = (1040, 'Papel e Celulose')
-    TEXTILE_AND_CLOTHING                                 = (1050, 'Têxtil e Vestuário')
-    METALLURGY_AND_STEELMAKING                           = (1060, 'Metalurgia e Siderurgia')
-    MACHINERY_EQUIPMENT_VEHICLE_AND_PARTS                = (1070, 'Máquinas, Equipamentos, Veículos e Peças')
-    PHARMACEUTICAL_AND_HYGIENE                           = (1080, 'Farmacêutico e Higiene')
-    BEVERAGES_AND_TOBACCO                                = (1090, 'Bebidas e Fumo')
-    PRINTERS_AND_PUBLISHERS                              = (1100, 'Gráficas e Editoras')
-    CIVIL_CONSTRUCTION_BUILDING_AND_DECORATION_MATERIALS = (1110, 'Construção Civil, Mat. Constr. e Decoração')
-    ELETRICITY                                           = (1120, 'Energia Elétrica')
-    TELECOMMUNICATIONS                                   = (1130, 'Telecomunicações')
-    TRANSPORT_AND_LOGISTICS_SERVICES                     = (1140, 'Serviços Transporte e Logística')
-    COMMUNICATION_AND_INFORMATION_TECHNOLOGY             = (1150, 'Comunicação e Informática')
-    SANITATION_WATER_AND_GAS_SERVICES                    = (1160, 'Saneamento, Serv. Água e Gás')
-    MEDICAL_SERVICES                                     = (1170, 'Serviços médicos')
-    HOSTING_AND_TOURISM                                  = (1180, 'Hospedagem e Turismo')
-    WHOLESAIL_AND_RETAIL_COMMERCE                        = (1190, 'Comércio (Atacado e Varejo)')
-    FOREIGN_COMMERCE                                     = (1200, 'Comércio Exterior')
-    AGRICULTURE                                          = (1210, 'Agricultura (Açúcar, Álcool e Cana)')
-    FOOD                                                 = (1220, 'Alimentos')
-    COOPERATIVES                                         = (1230, 'Cooperativas')
-    BANKS                                                = (1240, 'Bancos')
-    INSURANCE_AND_BROKERAGE_COMPANIES                    = (1250, 'Seguradoras e Corretoras')
-    LEASING                                              = (1260, 'Arrendamento Mercantil')
-    PRIVATE_PENSION                                      = (1270, 'Previdência Privada')
-    FINANCIAL_INTERMEDIATION                             = (1280, 'Intermediação Financeira')
-    FACTORING                                            = (1290, 'Factoring')
-    REAL_ESTATE_CREDIT                                   = (1300, 'Crédito Imobiliário')
-    REFORESTATION                                        = (1310, 'Reflorestamento')
-    FISHING                                              = (1320, 'Pesca')
-    PACKAGING                                            = (1330, 'Embalagens')
-    EDUCATION                                            = (1380, 'Educação')
-    SECURITIZATION_OF_RECEIVABLES                        = (1390, 'Securitização de Recebíveis')
-    TOYS_AND_RECREATIONAL                                = (1400, 'Brinquedos e Lazer')
-    STOCK_EXCHANGES                                      = (1410, 'Bolsas de Valores/Mercadorias e Futuros')
+class Industry(IntEnum):
+    OIL_AND_GAS                                          = 1010
+    PETROCHEMICAL_AND_RUBBER                             = 1020
+    MINERAL_EXTRACTION                                   = 1030
+    PULP_AND_PAPER                                       = 1040
+    TEXTILE_AND_CLOTHING                                 = 1050
+    METALLURGY_AND_STEELMAKING                           = 1060
+    MACHINERY_EQUIPMENT_VEHICLE_AND_PARTS                = 1070
+    PHARMACEUTICAL_AND_HYGIENE                           = 1080
+    BEVERAGES_AND_TOBACCO                                = 1090
+    PRINTERS_AND_PUBLISHERS                              = 1100
+    CIVIL_CONSTRUCTION_BUILDING_AND_DECORATION_MATERIALS = 1110
+    ELETRICITY                                           = 1120
+    TELECOMMUNICATIONS                                   = 1130
+    TRANSPORT_AND_LOGISTICS_SERVICES                     = 1140
+    COMMUNICATION_AND_INFORMATION_TECHNOLOGY             = 1150
+    SANITATION_WATER_AND_GAS_SERVICES                    = 1160
+    MEDICAL_SERVICES                                     = 1170
+    HOSTING_AND_TOURISM                                  = 1180
+    WHOLESAIL_AND_RETAIL_COMMERCE                        = 1190
+    FOREIGN_COMMERCE                                     = 1200
+    AGRICULTURE                                          = 1210
+    FOOD                                                 = 1220
+    COOPERATIVES                                         = 1230
+    BANKS                                                = 1240
+    INSURANCE_AND_BROKERAGE_COMPANIES                    = 1250
+    LEASING                                              = 1260
+    PRIVATE_PENSION                                      = 1270
+    FINANCIAL_INTERMEDIATION                             = 1280
+    FACTORING                                            = 1290
+    REAL_ESTATE_CREDIT                                   = 1300
+    REFORESTATION                                        = 1310
+    FISHING                                              = 1320
+    PACKAGING                                            = 1330
+    EDUCATION                                            = 1380
+    SECURITIZATION_OF_RECEIVABLES                        = 1390
+    TOYS_AND_RECREATIONAL                                = 1400
+    STOCK_EXCHANGES                                      = 1410
 
     # Enterprises, Administration, and Participation (EAP)
-    EAP_OIL_AND_GAS                                          = (3010, 'Emp. Adm. Part. - Petróleo e Gás')
-    EAP_PETROCHEMICAL_AND_RUBBER                             = (3020, 'Emp. Adm. Part. - Petroquímicos e Borracha')
-    EAP_MINERAL_EXTRACTION                                   = (3030, 'Emp. Adm. Part. - Extração Mineral')
-    EAP_PULP_AND_PAPER                                       = (3040, 'Emp. Adm. Part. - Papel e Celulose')
-    EAP_TEXTILE_AND_CLOTHING                                 = (3050, 'Emp. Adm. Part. - Têxtil e Vestuário')
-    EAP_METALLURGY_AND_STEELMAKING                           = (3060, 'Emp. Adm. Part. - Metalurgia e Siderurgia')
-    EAP_MACHINERY_EQUIPMENT_VEHICLE_AND_PARTS                = (3070, 'Emp. Adm. Part. - Máqs., Equip., Veíc. e Peças')
-    EAP_PHARMACEUTICAL_AND_HYGIENE                           = (3080, 'Emp. Adm. Part. - Farmacêutico e Higiene')
-    EAP_BEVERAGES_AND_TOBACCO                                = (3090, 'Emp. Adm. Part. - Bebidas e Fumo')
-    EAP_PRINTERS_AND_PUBLISHERS                              = (3100, 'Emp. Adm. Part. - Gráficas e Editoras')
-    EAP_CIVIL_CONSTRUCTION_BUILDING_AND_DECORATION_MATERIALS = (3110, 'Emp. Adm. Part. - Const. Civil, Mat. Const. e Decoração')
-    EAP_ELETRICITY                                           = (3120, 'Emp. Adm. Part. - Energia Elétrica')
-    EAP_TELECOMMUNICATIONS                                   = (3130, 'Emp. Adm. Part. - Telecomunicações')
-    EAP_TRANSPORT_AND_LOGISTICS_SERVICES                     = (3140, 'Emp. Adm. Part. - Serviços Transporte e Logística')
-    EAP_COMMUNICATION_AND_INFORMATION_TECHNOLOGY             = (3150, 'Emp. Adm. Part. - Comunicação e Informática')
-    EAP_SANITATION_WATER_AND_GAS_SERVICES                    = (3160, 'Emp. Adm. Part. - Saneamento, Serv. Água e Gás')
-    EAP_MEDICAL_SERVICES                                     = (3170, 'Emp. Adm. Part. - Serviços médicos')
-    EAP_HOSTING_AND_TOURISM                                  = (3180, 'Emp. Adm. Part. - Hospedagem e Turismo')
-    EAP_WHOLESAIL_AND_RETAIL_COMMERCE                        = (3190, 'Emp. Adm. Part. - Comércio (Atacado e Varejo)')
-    EAP_FOREIGN_COMMERCE                                     = (3200, 'Emp. Adm. Part. - Comércio Exterior')
-    EAP_AGRICULTURE                                          = (3210, 'Emp. Adm. Part. - Agricultura (Açúcar, Álcool e Cana)')
-    EAP_FOOD                                                 = (3220, 'Emp. Adm. Part. - Alimentos')
-    EAP_COOPERATIVES                                         = (3230, 'Emp. Adm. Part. - Cooperativas')
-    EAP_BANKS                                                = (3240, 'Emp. Adm. Part. - Bancos')
-    EAP_INSURANCE_AND_BROKERAGE_COMPANIES                    = (3250, 'Emp. Adm. Part. - Seguradoras e Corretoras')
-    EAP_LEASING                                              = (3260, 'Emp. Adm. Part. - Arrendamento Mercantil')
-    EAP_PRIVATE_PENSION                                      = (3270, 'Emp. Adm. Part. - Previdência Privada')
-    EAP_FINANCIAL_INTERMEDIATION                             = (3280, 'Emp. Adm. Part. - Intermediação Financeira')
-    EAP_FACTORING                                            = (3290, 'Emp. Adm. Part. - Factoring')
-    EAP_REAL_ESTATE_CREDIT                                   = (3300, 'Emp. Adm. Part. - Crédito Imobiliário')
-    EAP_REFORESTATION                                        = (3310, 'Emp. Adm. Part. - Reflorestamento')
-    EAP_FISHING                                              = (3320, 'Emp. Adm. Part. - Pesca')
-    EAP_PACKAGING                                            = (3330, 'Emp. Adm. Part. - Embalagens')
-    EAP_EDUCATION                                            = (3380, 'Emp. Adm. Part. - Educação')
-    EAP_SECURITIZATION_OF_RECEIVABLES                        = (3390, 'Emp. Adm. Part. - Securitização de Recebíveis')
-    EAP_TOYS_AND_RECREATIONAL                                = (3400, 'Emp. Adm. Part. - Brinquedos e Lazer')
-    EAP_STOCK_EXCHANGES                                      = (3410, 'Emp. Adm. Part.-Bolsas de Valores/Mercadorias e Futuros')
-    EAP_NO_CORE_BUSINESS                                     = (3990, 'Emp. Adm. Part. - Sem Setor Principal')
+    EAP_OIL_AND_GAS                                          = 3010
+    EAP_PETROCHEMICAL_AND_RUBBER                             = 3020
+    EAP_MINERAL_EXTRACTION                                   = 3030
+    EAP_PULP_AND_PAPER                                       = 3040
+    EAP_TEXTILE_AND_CLOTHING                                 = 3050
+    EAP_METALLURGY_AND_STEELMAKING                           = 3060
+    EAP_MACHINERY_EQUIPMENT_VEHICLE_AND_PARTS                = 3070
+    EAP_PHARMACEUTICAL_AND_HYGIENE                           = 3080
+    EAP_BEVERAGES_AND_TOBACCO                                = 3090
+    EAP_PRINTERS_AND_PUBLISHERS                              = 3100
+    EAP_CIVIL_CONSTRUCTION_BUILDING_AND_DECORATION_MATERIALS = 3110
+    EAP_ELETRICITY                                           = 3120
+    EAP_TELECOMMUNICATIONS                                   = 3130
+    EAP_TRANSPORT_AND_LOGISTICS_SERVICES                     = 3140
+    EAP_COMMUNICATION_AND_INFORMATION_TECHNOLOGY             = 3150
+    EAP_SANITATION_WATER_AND_GAS_SERVICES                    = 3160
+    EAP_MEDICAL_SERVICES                                     = 3170
+    EAP_HOSTING_AND_TOURISM                                  = 3180
+    EAP_WHOLESAIL_AND_RETAIL_COMMERCE                        = 3190
+    EAP_FOREIGN_COMMERCE                                     = 3200
+    EAP_AGRICULTURE                                          = 3210
+    EAP_FOOD                                                 = 3220
+    EAP_COOPERATIVES                                         = 3230
+    EAP_BANKS                                                = 3240
+    EAP_INSURANCE_AND_BROKERAGE_COMPANIES                    = 3250
+    EAP_LEASING                                              = 3260
+    EAP_PRIVATE_PENSION                                      = 3270
+    EAP_FINANCIAL_INTERMEDIATION                             = 3280
+    EAP_FACTORING                                            = 3290
+    EAP_REAL_ESTATE_CREDIT                                   = 3300
+    EAP_REFORESTATION                                        = 3310
+    EAP_FISHING                                              = 3320
+    EAP_PACKAGING                                            = 3330
+    EAP_EDUCATION                                            = 3380
+    EAP_SECURITIZATION_OF_RECEIVABLES                        = 3390
+    EAP_TOYS_AND_RECREATIONAL                                = 3400
+    EAP_STOCK_EXCHANGES                                      = 3410
+    EAP_NO_CORE_BUSINESS                                     = 3990
 
     # Old descriptions.
-    MISCELLANEOUS_SERVICES      = (-1, 'Serviços Diversos')
-    EAP                         = (-2, 'Emp. Adm. Participações')
-    OTHER_INDUSTRIAL_ACTIVITIES = (-3, 'Outras Atividades Industriais')
-    GENERAL_SERVICES            = (-5, 'Serviços em Geral')
+    MISCELLANEOUS_SERVICES      = -1
+    EAP                         = -2
+    OTHER_INDUSTRIAL_ACTIVITIES = -3
+    GENERAL_SERVICES            = -5
+
+    def is_eap(self) -> bool:
+        return self.value >= 3010 and self.value <= 3990
+
+    def as_eap(self) -> Industry:
+        if self.is_eap():
+            return self
+        
+        return Industry(self.value + 2000)
+
+    def as_non_eap(self) -> Industry:
+        if self.is_eap():
+            return Industry(self.value - 2000)
+
+        return self

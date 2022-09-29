@@ -1,7 +1,5 @@
-from cvm.datatypes.enums                  import *
 from cvm.datatypes.tax_id                 import *
 from cvm.datatypes.currency               import *
-from cvm.datatypes.federated_state        import *
 from cvm.datatypes.country                import *
 from cvm.datatypes.security               import *
 from cvm.datatypes.account                import *

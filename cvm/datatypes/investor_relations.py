@@ -1,23 +1,24 @@
 import dataclasses
 import datetime
 import typing
-from cvm import datatypes
+from enum import IntEnum, auto
+from cvm  import datatypes
 
 __all__ = [
     'InvestorRelationsOfficerType',
     'InvestorRelationsOfficer'
 ]
 
-class InvestorRelationsOfficerType(datatypes.DescriptiveIntEnum):
-    INVESTOR_RELATIONS_OFFICER = (1, 'Diretor de relações com investidores')
-    LIQUIDATOR                 = (2, 'Liquidante')
-    JUDICIAL_ADMINISTRATOR     = (3, 'Administrador judicial')
-    TRUSTEE                    = (4, 'Gestor judicial')
-    SYNDIC                     = (5, 'Síndico')
-    LEGAL_REPRESENTATIVE       = (6, 'Representante legal (para emissores estrangeiros)')
-    INTERVENTOR                = (7, 'Interventor')
-    SPECIAL_TEMP_ADMINISTRATOR = (8, 'Administrador Especial Temporário')
-    VACANT_POSITION            = (9, 'Cargo Vago')
+class InvestorRelationsOfficerType(IntEnum):
+    INVESTOR_RELATIONS_OFFICER = auto()
+    LIQUIDATOR                 = auto()
+    JUDICIAL_ADMINISTRATOR     = auto()
+    TRUSTEE                    = auto()
+    SYNDIC                     = auto()
+    LEGAL_REPRESENTATIVE       = auto()
+    INTERVENTOR                = auto()
+    SPECIAL_TEMP_ADMINISTRATOR = auto()
+    VACANT_POSITION            = auto()
 
 @dataclasses.dataclass(init=True)
 class InvestorRelationsOfficer:

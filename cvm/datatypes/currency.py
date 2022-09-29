@@ -1,13 +1,13 @@
-from cvm import datatypes
+from enum import IntEnum, auto
 
 __all__ = [
     'Currency',
     'CurrencySize'
 ]
 
-class Currency(datatypes.DescriptiveIntEnum):
-    BRL = (1, 'Real')
+class Currency(IntEnum):
+    BRL = auto()
 
-class CurrencySize(datatypes.DescriptiveIntEnum):
-    UNIT     = (1, 'Unidade')
-    THOUSAND = (2, 'Mil')
+class CurrencySize(IntEnum):
+    UNIT     = 1
+    THOUSAND = 1000

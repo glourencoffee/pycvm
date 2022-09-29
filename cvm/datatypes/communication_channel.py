@@ -8,4 +8,4 @@ __all__ = [
 @dataclasses.dataclass(init=True)
 class CommunicationChannel:
     name: str
-    state: datatypes.FederatedState
+    state: str
