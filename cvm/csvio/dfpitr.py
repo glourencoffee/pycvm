@@ -477,6 +477,8 @@ class DFPITRFile(zipfile.ZipFile):
     """Class for reading `DFPITR` objects from a DFP/ITR file."""
 
     def __init__(self, file: typing.Union[os.PathLike, typing.IO[bytes]], flag: BalanceFlag=BalanceFlag.CONSOLIDATED|BalanceFlag.INDIVIDUAL) -> None:
+        """Opens the DFP/ITR file in read mode."""
+
         super().__init__(file, mode='r')
 
         self._reader = dfpitr_reader(archive=self, flag=flag)

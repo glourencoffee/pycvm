@@ -491,6 +491,8 @@ class FCAFile(zipfile.ZipFile):
     """Class for reading `FCA` objects from an FCA file."""
 
     def __init__(self, file: typing.Union[os.PathLike, typing.IO[bytes]]) -> None:
+        """Opens the FCA file in read mode."""
+
         super().__init__(file, mode='r')
 
         self._reader = fca_reader(archive=self)
