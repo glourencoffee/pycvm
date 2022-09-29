@@ -24,12 +24,13 @@ def main():
         print('usage: print_dmpl.py <dfpitr>')
         return 1
 
-    for dfpitr in cvm.dfpitr_reader(sys.argv[1]):
+    with cvm.DFPITRFile(sys.argv[1]) as file:
         try:
-            print_document(dfpitr)
-            time.sleep(2)
+            for dfpitr in file:
+                print_document(dfpitr)
+                time.sleep(2)
         except KeyboardInterrupt:
-            break
+            pass
 
     return 0
 

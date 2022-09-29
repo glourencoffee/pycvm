@@ -109,9 +109,10 @@ def main():
         return 1
 
     try:
-        for fca in cvm.fca_reader(sys.argv[1]):
-            print_fca(fca)
-            time.sleep(1)
+        with cvm.FCAFile(sys.argv[1]) as file:
+            for fca in file:
+                print_fca(fca)
+                time.sleep(1)
     except KeyboardInterrupt:
         pass
 

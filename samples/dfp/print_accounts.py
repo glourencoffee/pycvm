@@ -41,12 +41,13 @@ def main():
         print('usage: print_accounts.py <dfpitr>')
         return 1
 
-    for dfpitr in cvm.dfpitr_reader(sys.argv[1]):
-        try:
-            print_document(dfpitr)
-            time.sleep(2)
-        except KeyboardInterrupt:
-            break
+    with cvm.DFPITRFile(sys.argv[1]) as file:
+        for dfpitr in file:
+            try:
+                print_document(dfpitr)
+                time.sleep(2)
+            except KeyboardInterrupt:
+                break
 
     return 0
 
