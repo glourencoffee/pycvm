@@ -21,7 +21,6 @@ from cvm.exceptions          import ZipMemberError, NotImplementedException, Inv
 from cvm.utils               import date_from_string
 
 __all__ = [
-    'BalanceFlag',
     'dfpitr_reader',
     'DFPITRFile'
 ]
@@ -314,11 +313,6 @@ class DMPLReader(StatementReader):
             accounts          = dmpl_accounts
         )
 
-class BalanceFlag(enum.IntFlag):
-    NONE         = 0
-    CONSOLIDATED = 1
-    INDIVIDUAL   = 2
-
 def _open_zip_member_on_stack(stack: contextlib.ExitStack, archive: zipfile.ZipFile, filename: str):
     member = archive.open(filename, mode='r')
     stream = io.TextIOWrapper(member, encoding='iso-8859-1')
@@ -354,7 +348,7 @@ def _read_all_statements(batch_id: int, readers: typing.List[typing.Tuple[Statem
     
     return all_statements
 
-def dfpitr_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generator[DFPITR, None, None]:
+def dfpitr_reader(archive: zipfile.ZipFile, consolidated: bool, individual: bool) -> typing.Generator[DFPITR, None, None]:
     ################################################################################
     # The implementation below tries to read all the CSV files contained in the DFP
     # ZIP file simultaneously, taking advantage of the fact that data in these files
@@ -402,12 +396,12 @@ def dfpitr_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generat
     with contextlib.ExitStack() as stack:
         head_reader = RegularDocumentHeadReader(_open_zip_member_on_stack(stack, archive, namelist.head))
 
-        if flag & BalanceFlag.INDIVIDUAL:
+        if individual:
             ind_readers = _make_readers(stack, archive, namelist.ind)
         else:
             ind_readers = {}
 
-        if flag & BalanceFlag.CONSOLIDATED:
+        if consolidated:
             con_readers = _make_readers(stack, archive, namelist.con)
         else:
             con_readers = {}
@@ -476,12 +470,16 @@ def dfpitr_reader(archive: zipfile.ZipFile, flag: BalanceFlag) -> typing.Generat
 class DFPITRFile(zipfile.ZipFile):
     """Class for reading `DFPITR` objects from a DFP/ITR file."""
 
-    def __init__(self, file: typing.Union[os.PathLike, typing.IO[bytes]], flag: BalanceFlag=BalanceFlag.CONSOLIDATED|BalanceFlag.INDIVIDUAL) -> None:
+    def __init__(self,
+                 file: typing.Union[os.PathLike, typing.IO[bytes]],
+                 consolidated: bool = True,
+                 individual: bool = True
+    ) -> None:
         """Opens the DFP/ITR file in read mode."""
 
         super().__init__(file, mode='r')
 
-        self._reader = dfpitr_reader(archive=self, flag=flag)
+        self._reader = dfpitr_reader(archive=self, consolidated=consolidated, individual=individual)
 
     def __iter__(self) -> DFPITRFile:
         return self
