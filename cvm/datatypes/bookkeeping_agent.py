@@ -7,7 +7,7 @@ __all__ = [
     'BookkeepingAgent'
 ]
 
-@dataclasses.dataclass(init=True, frozen=True)
+@dataclasses.dataclass(init=True)
 class BookkeepingAgent:
     """Implements a data structure for Item 4 of CVM Instruction 480/2009."""
 

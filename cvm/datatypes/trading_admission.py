@@ -7,7 +7,7 @@ __all__ = [
     'TradingAdmission'
 ]
 
-@dataclasses.dataclass(init=True, frozen=True)
+@dataclasses.dataclass(init=True)
 class TradingAdmission:
     foreign_country: typing.Optional[datatypes.Country]
     """(1.14) 'País estrangeiro em que os valores mobiliários são admitidos à negociação'"""

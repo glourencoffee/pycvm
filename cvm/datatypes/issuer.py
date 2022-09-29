@@ -23,7 +23,7 @@ class IssuerAddressType(datatypes.DescriptiveIntEnum):
     HEADQUARTER     = (1, 'Sede')
     MAILING_ADDRESS = (2, 'Endereço para correspondência')
 
-@dataclasses.dataclass(init=True, frozen=True)
+@dataclasses.dataclass(init=True)
 class IssuerCompany:
     """Implements a data structure for Item 1 of CVM Instruction 480/2009."""
 
@@ -66,7 +66,7 @@ class IssuerCompany:
     securities_custody_country: typing.Optional[datatypes.Country]
     """(1.13) 'País em que os valores mobiliários estão custodiados'"""
 
-    trading_admissions: typing.Tuple[datatypes.TradingAdmission]
+    trading_admissions: typing.List[datatypes.TradingAdmission]
     """(1.14, 1.15) Collection of foreign countries admitted to trading and date of admission."""
 
     industry: datatypes.Industry
@@ -96,10 +96,10 @@ class IssuerCompany:
     webpage: str
     """(1.23) 'Página do emissor na rede mundial de computadores'"""
 
-    communication_channels: typing.Tuple[datatypes.CommunicationChannel]
+    communication_channels: typing.List[datatypes.CommunicationChannel]
     """(1.24) 'Canais de comunicação utilizados pelo emissor'"""
 
-    addresses: typing.Tuple[datatypes.Address]
+    addresses: typing.List[datatypes.Address]
     """(1.25) 'Endereço'"""
 
     contact: datatypes.Contact

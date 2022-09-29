@@ -7,7 +7,7 @@ __all__ = [
     'ShareholderDepartmentPerson'
 ]
 
-@dataclasses.dataclass(init=True, frozen=True)
+@dataclasses.dataclass(init=True)
 class ShareholderDepartmentPerson:
     name: str
     """(N/A) This information is not required by the Instruction, but is provided nonetheless."""

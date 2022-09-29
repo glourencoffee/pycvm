@@ -49,7 +49,7 @@ class PreferredShareType(datatypes.DescriptiveIntEnum):
     PNC = (3, 'Preferencial Classe C')
     PNU = (4, 'Preferencial Classe U')
 
-@dataclasses.dataclass(init=True, frozen=True)
+@dataclasses.dataclass(init=True)
 class Security:
     type: SecurityType
     """(2.1.a) 'Nome'"""

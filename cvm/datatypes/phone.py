@@ -5,7 +5,7 @@ __all__ = [
     'Phone'
 ]
 
-@dataclasses.dataclass(init=True, frozen=True)
+@dataclasses.dataclass(init=True)
 class Phone:
     country_code: typing.Optional[int]
     area_code: int
