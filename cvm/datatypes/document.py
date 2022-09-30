@@ -37,7 +37,7 @@ class RegularDocument:
     url: str
 
     def __repr__(self) -> str:
-        return f'<RegularDocument: id={self.id} type={self.type} version={self.version} CNPJ={self.cnpj}>'
+        return f'<{self.__class__.__name__}: id={self.id} type={self.type.name} version={self.version} CNPJ={self.cnpj}>'
 
 @dataclasses.dataclass(init=True, repr=False)
 class FCA(RegularDocument):
