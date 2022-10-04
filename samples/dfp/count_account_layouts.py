@@ -21,20 +21,23 @@ class AccountLayout:
 
 def get_account_layouts(dfp_file: cvm.DFPITRFile,
                         max_level: int,
-                        statement_type: cvm.StatementType
+                        statement_type: cvm.StatementType,
+                        balance_type: cvm.BalanceType
 ) -> typing.Dict[int, AccountLayout]:
     
     layouts = collections.defaultdict(AccountLayout)
 
     for doc in dfp_file:
-        if doc.consolidated is None:
+        statements = doc[balance_type]
+
+        if statements is None:
             continue
 
-        print("reading consolidated BPA layout by company '", doc.company_name, "'", sep='')
+        print("reading ", balance_type.name.lower(), " BPA layout by company '", doc.company_name, "'", sep='')
 
         fixed_accounts = []
         layout_hash    = ''
-        statement      = doc.consolidated.last[statement_type]
+        statement      = statements.last[statement_type]
 
         for acc in statement.accounts:
             if acc.is_fixed and acc.level <= max_level:
@@ -82,8 +85,8 @@ def write_layouts(out_dir_name: str, layouts: typing.Dict[int, AccountLayout]) -
             write_layout(out_file, layout_hash, layout)
 
 def main():
-    if len(sys.argv) < 5:
-        print('usage: count_account_layouts.py <dfp-file> <out-dir> <max-level> <statement-type>')
+    if len(sys.argv) < 6:
+        print('usage: count_account_layouts.py <dfp-file> <out-dir> <max-level> <statement-type> <balance-type>')
         return 1
 
     dfp_file_name = sys.argv[1]
@@ -105,15 +108,28 @@ def main():
         print('error: invalid/unsupported statement type:', statement_type)
         return 1
 
+    balance_type = sys.argv[5]
+
+    if balance_type not in ('consolidated', 'individual'):
+        print("invalid balance type '", balance_type, "' (expected 'consolidated' or 'individual')", sep='')
+        return 1
+
     statement_type = getattr(cvm.StatementType, statement_type)
+    balance_type   = getattr(cvm.BalanceType,   balance_type.upper())
 
-    with cvm.DFPITRFile(dfp_file_name) as file:
-        layouts = get_account_layouts(file, max_level, statement_type)
+    try:
+        consolidated = (balance_type == cvm.BalanceType.CONSOLIDATED)
+        individual   = not consolidated
 
-    if not os.path.isdir(out_dir_name):
-        os.mkdir(out_dir_name)
+        with cvm.DFPITRFile(dfp_file_name, consolidated=consolidated, individual=individual) as file:
+            layouts = get_account_layouts(file, max_level, statement_type, balance_type)
 
-    write_layouts(out_dir_name, layouts)
+        if not os.path.isdir(out_dir_name):
+            os.mkdir(out_dir_name)
+
+        write_layouts(out_dir_name, layouts)
+    except KeyboardInterrupt:
+        pass
 
     return 0
 
