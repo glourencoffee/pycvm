@@ -43,7 +43,7 @@ class FiscalYearOrder(IntEnum):
 @dataclasses.dataclass(init=True)
 class Statement:
     fiscal_year_order: FiscalYearOrder
-    currency: datatypes.Currency
+    currency: str
     currency_size: datatypes.CurrencySize
     accounts: typing.List[datatypes.BaseAccount]
 

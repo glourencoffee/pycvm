@@ -14,7 +14,7 @@ from cvm import datatypes
 from cvm.csvio.batch import CSVBatch
 from cvm.csvio.document      import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
 from cvm.csvio.row           import CSVRow
-from cvm.datatypes.currency  import Currency, CurrencySize
+from cvm.datatypes.currency  import CurrencySize
 from cvm.datatypes.tax_id    import CNPJ
 from cvm.datatypes.statement import GroupedStatementCollection, StatementType, Statement, DFCMethod, FiscalYearOrder, BPx, DRxDVA, DFC, DMPL
 from cvm.datatypes.document  import DFPITR
@@ -109,9 +109,9 @@ class StatementReader(RegularDocumentBodyReader):
 
     @staticmethod
     @functools.lru_cache
-    def currencies() -> typing.Dict[str, Currency]:
+    def currencies() -> typing.Dict[str, str]:
         return {
-            'REAL': Currency.BRL
+            'REAL': 'BRL'
         }
 
     @staticmethod
@@ -127,7 +127,7 @@ class StatementReader(RegularDocumentBodyReader):
         return cls.fiscal_year_orders()[value]
 
     @classmethod
-    def make_currency(cls, value: str) -> Currency:
+    def make_currency(cls, value: str) -> str:
         return cls.currencies()[value]
 
     @classmethod
