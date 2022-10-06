@@ -6,9 +6,11 @@ import os
 import typing
 import zipfile
 from cvm                import datatypes, exceptions, utils
+from cvm.csvio.member   import MemberNameList
+from cvm.csvio.row      import CSVRow
 from cvm.csvio.batch    import CSVBatch
 from cvm.csvio.document import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
-from cvm.csvio.row      import CSVRow
+from cvm.utils          import open_zip_member_on_stack
 from cvm.datatypes      import (
     ControllingInterest, Country, SecurityType,
     MarketType, MarketSegment, PreferredShareType,
@@ -22,50 +24,45 @@ __all__ = [
     'FCAFile'
 ]
 
-class _MemberNameList:
-    head_filename: str
-    auditor_filename: str
-    dissemination_channel_filename: str
-    shareholder_department_filename: str
-    investor_relations_department_filename: str
-    address_filename: str
-    bookkeeper_filename: str
-    general_filename: str
-    foreign_country_filename: str
-    securities_filename: str
+class FCAMemberNameList(MemberNameList):
+    head: str
+    auditor: str
+    dissemination_channel: str
+    shareholder_department: str
+    investor_relations_department: str
+    address: str
+    bookkeeper: str
+    general: str
+    foreign_country: str
+    securities: str
 
-    def __init__(self, namelist: typing.Iterable[str]):
-        self.head_filename                          = ''
-        self.auditor_filename                       = ''
-        self.dissemination_channel_filename         = ''
-        self.shareholder_department_filename        = ''
-        self.investor_relations_department_filename = ''
-        self.address_filename                       = ''
-        self.bookkeeper_filename                    = ''
-        self.general_filename                       = ''
-        self.foreign_country_filename               = ''
-        self.securities_filename                    = ''
+    @classmethod
+    def attribute_mapping(cls) -> typing.Dict[str, str]:
+        return {
+            '':                             'head',
+            '_auditor':                     'auditor',
+            '_canal_divulgacao':            'dissemination_channel',
+            '_departamento_acionistas':     'shareholder_department',
+            '_dri':                         'investor_relations_department',
+            '_endereco':                    'address',
+            '_escriturador':                'bookkeeper',
+            '_geral':                       'general',
+            '_pais_estrangeiro_negociacao': 'foreign_country',
+            '_valor_mobiliario':            'securities',
+        }
 
-        suffix_length = len('_YYYY.csv')
-
-        for name in namelist:
-            try:
-                left_name = name[:-suffix_length]
-            except IndexError:
-                raise zipfile.BadZipFile(f"unexpected name for member file '{name}'")
-
-            if   left_name == 'fca_cia_aberta':                             self.head_filename                          = name
-            elif left_name == 'fca_cia_aberta_auditor':                     self.auditor_filename                       = name
-            elif left_name == 'fca_cia_aberta_canal_divulgacao':            self.dissemination_channel_filename         = name
-            elif left_name == 'fca_cia_aberta_departamento_acionistas':     self.shareholder_department_filename        = name
-            elif left_name == 'fca_cia_aberta_dri':                         self.investor_relations_department_filename = name
-            elif left_name == 'fca_cia_aberta_endereco':                    self.address_filename                       = name
-            elif left_name == 'fca_cia_aberta_escriturador':                self.bookkeeper_filename                    = name
-            elif left_name == 'fca_cia_aberta_geral':                       self.general_filename                       = name
-            elif left_name == 'fca_cia_aberta_pais_estrangeiro_negociacao': self.foreign_country_filename               = name
-            elif left_name == 'fca_cia_aberta_valor_mobiliario':            self.securities_filename                    = name
-            else:
-                raise zipfile.BadZipFile(f"unknown member file '{name}'")
+    __slots__ = (
+        'head',
+        'auditor',
+        'dissemination_channel',
+        'shareholder_department',
+        'investor_relations_department',
+        'address',
+        'bookkeeper',
+        'general',
+        'foreign_country',
+        'securities',
+    )
 
 class CommonReader(RegularDocumentBodyReader):
     @staticmethod
@@ -1029,25 +1026,17 @@ class ShareholderDepartmentReader(CommonReader):
 
         return shareholder_dept
 
-def fca_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
-    namelist = _MemberNameList(iter(archive.namelist()))
-
+def _reader(archive: zipfile.ZipFile, namelist: FCAMemberNameList) -> typing.Generator[datatypes.FCA, None, None]:
     with contextlib.ExitStack() as stack:
-        def open_on_stack(filename: str):
-            member = archive.open(filename, mode='r')
-            stream = io.TextIOWrapper(member, encoding='iso-8859-1')
-            
-            return stack.enter_context(stream)
-
-        head_reader              = RegularDocumentHeadReader        (open_on_stack(namelist.head_filename))
-        address_reader           = AddressReader                    (open_on_stack(namelist.address_filename))
-        trading_admission_reader = TradingAdmissionReader           (open_on_stack(namelist.foreign_country_filename))
-        issuer_company_reader    = IssuerCompanyReader              (open_on_stack(namelist.general_filename))
-        security_reader          = SecurityReader                   (open_on_stack(namelist.securities_filename))
-        auditor_reader           = AuditorReader                    (open_on_stack(namelist.auditor_filename))
-        bookkeeping_agent_reader = BookkeepingAgentReader           (open_on_stack(namelist.bookkeeper_filename))
-        ird_reader               = InvestorRelationsDepartmentReader(open_on_stack(namelist.investor_relations_department_filename))
-        shareholder_dept_reader  = ShareholderDepartmentReader      (open_on_stack(namelist.shareholder_department_filename))
+        head_reader              = RegularDocumentHeadReader        (open_zip_member_on_stack(stack, archive, namelist.head))
+        address_reader           = AddressReader                    (open_zip_member_on_stack(stack, archive, namelist.address))
+        trading_admission_reader = TradingAdmissionReader           (open_zip_member_on_stack(stack, archive, namelist.foreign_country))
+        issuer_company_reader    = IssuerCompanyReader              (open_zip_member_on_stack(stack, archive, namelist.general))
+        security_reader          = SecurityReader                   (open_zip_member_on_stack(stack, archive, namelist.securities))
+        auditor_reader           = AuditorReader                    (open_zip_member_on_stack(stack, archive, namelist.auditor))
+        bookkeeping_agent_reader = BookkeepingAgentReader           (open_zip_member_on_stack(stack, archive, namelist.bookkeeper))
+        ird_reader               = InvestorRelationsDepartmentReader(open_zip_member_on_stack(stack, archive, namelist.investor_relations_department))
+        shareholder_dept_reader  = ShareholderDepartmentReader      (open_zip_member_on_stack(stack, archive, namelist.shareholder_department))
 
         while True:
             try:
@@ -1136,6 +1125,11 @@ def fca_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None
                 investor_relations_department = ird,
                 shareholder_department        = shareholder_dept
             )
+
+def fca_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
+    namelist = FCAMemberNameList(iter(archive.namelist()))
+
+    return _reader(archive, namelist)
 
 class FCAFile(zipfile.ZipFile):
     """Class for reading `FCA` objects from an FCA file."""

@@ -3,81 +3,95 @@ import collections
 import contextlib
 import datetime
 import decimal
-import enum
 import functools
-import io
 import os
 import typing
 import zipfile
 import zlib
-from cvm import datatypes
-from cvm.csvio.batch import CSVBatch
-from cvm.csvio.document      import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
+from dataclasses             import dataclass
+from cvm                     import datatypes
+from cvm.csvio.member        import MemberNameList
 from cvm.csvio.row           import CSVRow
+from cvm.csvio.batch         import CSVBatch
+from cvm.csvio.document      import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
 from cvm.datatypes.currency  import Currency, CurrencySize
 from cvm.datatypes.tax_id    import CNPJ
 from cvm.datatypes.statement import GroupedStatementCollection, StatementType, Statement, DFCMethod, FiscalYearOrder, BPx, DRxDVA, DFC, DMPL
 from cvm.datatypes.document  import DFPITR
 from cvm.exceptions          import ZipMemberError, NotImplementedException, InvalidValueError, BadDocument
-from cvm.utils               import date_from_string
+from cvm.utils               import date_from_string, open_zip_member_on_stack
 
 __all__ = [
     'dfpitr_reader',
     'DFPITRFile'
 ]
 
+@dataclass
 class _StatementFileNames:
-    bpa: str
-    bpp: str
-    dfc_md: str
-    dfc_mi: str
-    dmpl: str
-    dra: str
-    dre: str
-    dva: str
+    bpa: str = ''
+    bpp: str = ''
+    dfc_md: str = ''
+    dfc_mi: str = ''
+    dmpl: str = ''
+    dra: str = ''
+    dre: str = ''
+    dva: str = ''
 
-class _MemberNameList:
+    def __setattr__(self, __name: str, __value: typing.Any) -> None:
+        print('_StatementFileNames.__setattr__(): name ==', __name, '- value ==', __value)
+        super().__setattr__(__name, __value)
+
+class DFPITRMemberNameList(MemberNameList):
     head: str
     con: _StatementFileNames
     ind: _StatementFileNames
 
+    @classmethod
+    def attribute_mapping(cls) -> typing.Dict[str, str]:
+        return {
+            '':            'head',
+            '_BPA_con':    'con.bpa',
+            '_BPA_ind':    'ind.bpa',
+            '_BPP_con':    'con.bpp',
+            '_BPP_ind':    'ind.bpp',
+            '_DFC_MD_con': 'con.dfc_md',
+            '_DFC_MD_ind': 'ind.dfc_md',
+            '_DFC_MI_con': 'con.dfc_mi',
+            '_DFC_MI_ind': 'ind.dfc_mi',
+            '_DMPL_con':   'con.dmpl',
+            '_DMPL_ind':   'ind.dmpl',
+            '_DRA_con':    'con.dra',
+            '_DRA_ind':    'ind.dra',
+            '_DRE_con':    'con.dre',
+            '_DRE_ind':    'ind.dre',
+            '_DVA_con':    'con.dva',
+            '_DVA_ind':    'ind.dva',
+        }
+
     def __init__(self, namelist: typing.Iterable[str]):
-        self.head = ''
-        self.con  = _StatementFileNames()
-        self.ind  = _StatementFileNames()
+        self.con = _StatementFileNames()
+        self.ind = _StatementFileNames()
 
-        # <file-name>   ::= <prefix> <middle-name> <suffix>
-        # <prefix>      ::= ("dfp" | "itr") "_cia_aberta" ["_"]
-        # <middle-name> ::= see below
-        # <suffix>      ::= "_" <4-digit-year> ".csv"
-        prefix_length = len('XXX_cia_aberta')
-        suffix_length = len('_XXXX.csv')
+        super().__init__(namelist)
 
-        for name in namelist:
-            try:
-                middle_name = name[prefix_length:-suffix_length]
-            except IndexError:
-                raise ZipMemberError(name)
+    def __setattr__(self, name: str, value: typing.Any) -> None:
+        """Reimplements `__setattr__()` to handle sub-attributes (e.g. name == "con.bpa")."""
 
-            if   middle_name == '':            self.head       = name
-            elif middle_name == '_BPA_con':    self.con.bpa    = name
-            elif middle_name == '_BPA_ind':    self.ind.bpa    = name
-            elif middle_name == '_BPP_con':    self.con.bpp    = name
-            elif middle_name == '_BPP_ind':    self.ind.bpp    = name
-            elif middle_name == '_DFC_MD_con': self.con.dfc_md = name
-            elif middle_name == '_DFC_MD_ind': self.ind.dfc_md = name
-            elif middle_name == '_DFC_MI_con': self.con.dfc_mi = name
-            elif middle_name == '_DFC_MI_ind': self.ind.dfc_mi = name
-            elif middle_name == '_DMPL_con':   self.con.dmpl   = name
-            elif middle_name == '_DMPL_ind':   self.ind.dmpl   = name
-            elif middle_name == '_DRA_con':    self.con.dra    = name
-            elif middle_name == '_DRA_ind':    self.ind.dra    = name
-            elif middle_name == '_DRE_con':    self.con.dre    = name
-            elif middle_name == '_DRE_ind':    self.ind.dre    = name
-            elif middle_name == '_DVA_con':    self.con.dva    = name
-            elif middle_name == '_DVA_ind':    self.ind.dva    = name
-            else:
-                raise ZipMemberError(name)
+        try:
+            # Try getting a sub-attribute
+            attr_name, subattr_name = name.split('.')
+        except ValueError:
+            # Got only attribute (self.head, self.con, or self.ind)
+            super().__setattr__(name, value)
+        else:
+            first_attr = getattr(self, attr_name)
+            setattr(first_attr, subattr_name, value)
+
+    __slots__ = (
+        'head',
+        'con',
+        'ind'
+    )
 
 def _make_row_batch_id(cnpj: CNPJ, reference_date: datetime.date, version: int) -> int:
     """Calculates the row batch id of a DFP file based on the value of repeated fields.
@@ -352,26 +366,20 @@ class DMPLReader(StatementReader):
             accounts          = dmpl_accounts
         )
 
-def _open_zip_member_on_stack(stack: contextlib.ExitStack, archive: zipfile.ZipFile, filename: str):
-    member = archive.open(filename, mode='r')
-    stream = io.TextIOWrapper(member, encoding='iso-8859-1')
-
-    return stack.enter_context(stream)
-
 def _make_readers(stack: contextlib.ExitStack,
                   archive: zipfile.ZipFile,
                   filenames: _StatementFileNames
 ) -> typing.List[typing.Tuple[StatementType, StatementReader]]:
 
     return [
-        (StatementType.BPA,  BPxReader   (_open_zip_member_on_stack(stack, archive, filenames.bpa))),
-        (StatementType.BPP,  BPxReader   (_open_zip_member_on_stack(stack, archive, filenames.bpp))),
-        (StatementType.DRE,  DRxDVAReader(_open_zip_member_on_stack(stack, archive, filenames.dre))),
-        (StatementType.DRA,  DRxDVAReader(_open_zip_member_on_stack(stack, archive, filenames.dra))),
-        (StatementType.DFC,  DFCReader   (_open_zip_member_on_stack(stack, archive, filenames.dfc_md))),
-        (StatementType.DFC,  DFCReader   (_open_zip_member_on_stack(stack, archive, filenames.dfc_mi))),
-        (StatementType.DMPL, DMPLReader  (_open_zip_member_on_stack(stack, archive, filenames.dmpl))),
-        (StatementType.DVA,  DRxDVAReader(_open_zip_member_on_stack(stack, archive, filenames.dva)))
+        (StatementType.BPA,  BPxReader   (open_zip_member_on_stack(stack, archive, filenames.bpa))),
+        (StatementType.BPP,  BPxReader   (open_zip_member_on_stack(stack, archive, filenames.bpp))),
+        (StatementType.DRE,  DRxDVAReader(open_zip_member_on_stack(stack, archive, filenames.dre))),
+        (StatementType.DRA,  DRxDVAReader(open_zip_member_on_stack(stack, archive, filenames.dra))),
+        (StatementType.DFC,  DFCReader   (open_zip_member_on_stack(stack, archive, filenames.dfc_md))),
+        (StatementType.DFC,  DFCReader   (open_zip_member_on_stack(stack, archive, filenames.dfc_mi))),
+        (StatementType.DMPL, DMPLReader  (open_zip_member_on_stack(stack, archive, filenames.dmpl))),
+        (StatementType.DVA,  DRxDVAReader(open_zip_member_on_stack(stack, archive, filenames.dva)))
     ]
 
 def _read_all_statements(batch_id: int, readers: typing.List[typing.Tuple[StatementType, StatementReader]]) -> typing.Dict[StatementType, Statement]:
@@ -387,7 +395,11 @@ def _read_all_statements(batch_id: int, readers: typing.List[typing.Tuple[Statem
     
     return all_statements
 
-def dfpitr_reader(archive: zipfile.ZipFile, consolidated: bool, individual: bool) -> typing.Generator[DFPITR, None, None]:
+def _reader(archive: zipfile.ZipFile,
+            namelist: DFPITRMemberNameList,
+            consolidated: bool,
+            individual: bool
+) -> typing.Generator[DFPITR, None, None]:
     ################################################################################
     # The implementation below tries to read all the CSV files contained in the DFP
     # ZIP file simultaneously, taking advantage of the fact that data in these files
@@ -428,12 +440,11 @@ def dfpitr_reader(archive: zipfile.ZipFile, consolidated: bool, individual: bool
     # Reading files simultaneously, as we're doing, is the fastest and cheapest way,
     # but it also makes code a bit harder to read.
     ################################################################################
-    namelist = _MemberNameList(iter(archive.namelist()))
-
+    
     # Argh, too many files...
     # https://stackoverflow.com/questions/4617034/how-can-i-open-multiple-files-using-with-open-in-python
     with contextlib.ExitStack() as stack:
-        head_reader = RegularDocumentHeadReader(_open_zip_member_on_stack(stack, archive, namelist.head))
+        head_reader = RegularDocumentHeadReader(open_zip_member_on_stack(stack, archive, namelist.head))
 
         if individual:
             ind_readers = _make_readers(stack, archive, namelist.ind)
@@ -505,6 +516,11 @@ def dfpitr_reader(archive: zipfile.ZipFile, consolidated: bool, individual: bool
                 individual     = individual,
                 consolidated   = consolidated
             )
+
+def dfpitr_reader(archive: zipfile.ZipFile, consolidated: bool, individual: bool) -> typing.Generator[DFPITR, None, None]:
+    namelist = DFPITRMemberNameList(iter(archive.namelist()))
+
+    return _reader(archive, namelist, consolidated, individual)
 
 class DFPITRFile(zipfile.ZipFile):
     """Class for reading `DFPITR` objects from a DFP/ITR file."""
