@@ -23,7 +23,7 @@ of documents from publicly-held companies:
 - Eventual and Periodical Reports ("Informes Periódicos e Eventuais" or "IPE")
 - Registration Information ("Informação Cadastral" or "CAD")
 
-Currently, this library only supports the documents FCA, DFP, and ITR.
+Currently, this library supports the documents FCA, FRE (partial), DFP, and ITR.
 
 # Usage
 

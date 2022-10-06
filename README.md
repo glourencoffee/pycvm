@@ -23,7 +23,7 @@ tipos de documentos de companhias abertas:
 - Informes Periódicos e Eventuais (IPE)
 - Informação Cadastral (CAD)
 
-Atualmente, esta biblioteca apenas suporta os documentos FCA, DFP e ITR.
+Atualmente, esta biblioteca suporta os documentos FCA, FRE (parcial), DFP e ITR.
 
 # Uso
 
