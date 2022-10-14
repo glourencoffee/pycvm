@@ -1,6 +1,5 @@
 from cvm.datatypes.tax_id                 import *
 from cvm.datatypes.currency               import *
-from cvm.datatypes.country                import *
 from cvm.datatypes.security               import *
 from cvm.datatypes.account                import *
 from cvm.datatypes.statement              import *
