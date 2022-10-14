@@ -1,12 +1,8 @@
-from enum import IntEnum, auto
+from enum import IntEnum
 
 __all__ = [
-    'Currency',
     'CurrencySize'
 ]
-
-class Currency(IntEnum):
-    BRL = auto()
 
 class CurrencySize(IntEnum):
     UNIT     = 1
