@@ -37,10 +37,6 @@ class _StatementFileNames:
     dre: str = ''
     dva: str = ''
 
-    def __setattr__(self, __name: str, __value: typing.Any) -> None:
-        print('_StatementFileNames.__setattr__(): name ==', __name, '- value ==', __value)
-        super().__setattr__(__name, __value)
-
 class DFPITRMemberNameList(MemberNameList):
     head: str
     con: _StatementFileNames
