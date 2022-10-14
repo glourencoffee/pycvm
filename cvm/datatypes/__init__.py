@@ -16,4 +16,5 @@ from cvm.datatypes.controlling_interest   import *
 from cvm.datatypes.communication_channel  import *
 from cvm.datatypes.issuer                 import *
 from cvm.datatypes.shareholder_department import *
+from cvm.datatypes.capital_distribution   import *
 from cvm.datatypes.document               import *

@@ -17,7 +17,10 @@ class RegularDocumentHeadReader:
         try:
             doctype = getattr(datatypes.DocumentType, strtype)
         except AttributeError:
-            raise exceptions.BadDocument(f"unknown document type '{strtype}'")
+            if strtype == 'FRE NOVO':
+                doctype = datatypes.DocumentType.FRE
+            else:
+                raise exceptions.BadDocument(f"unknown document type '{strtype}'") from None
 
         return datatypes.RegularDocument(
             cnpj           = row.required('CNPJ_CIA',  datatypes.CNPJ.from_zfilled_with_separators),

@@ -8,11 +8,13 @@ __all__ = [
     'DocumentType',
     'RegularDocument',
     'FCA',
+    'FRE',
     'DFPITR'
 ]
 
 class DocumentType(IntEnum):
     FCA = auto() # Formulário Cadastral
+    FRE = auto() # Formulário de Referência
     DFP = auto() # Demonstrações Fiscais Padronizadas
     ITR = auto() # Informe Trimestral
 
@@ -68,6 +70,18 @@ class FCA(RegularDocument):
 
     shareholder_department: typing.List[datatypes.ShareholderDepartmentPerson]
     """Instruction Item 6"""
+
+@dataclasses.dataclass(init=True, repr=False)
+class FRE(RegularDocument):
+    """A Reference Form ("Formulário de Referência" or "FRE") is a regular document
+    that open-market companies are required to send to CVM. It is specified by the
+    CVM Instruction 480/2009, which is found at the CVM offical website[1].
+
+    [1] https://conteudo.cvm.gov.br/export/sites/cvm/legislacao/instrucoes/anexos/400/inst480consolid.pdf ("Anexo 24")
+    """
+
+    capital_distribution: typing.Optional[datatypes.CapitalDistribution]
+    """Instruction Item 15.3"""
 
 @dataclasses.dataclass(init=True, repr=False)
 class DFPITR(RegularDocument):
