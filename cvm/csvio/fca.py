@@ -6,11 +6,13 @@ import os
 import typing
 import zipfile
 from cvm                import datatypes, exceptions, utils
+from cvm.csvio.member   import MemberNameList
+from cvm.csvio.row      import CSVRow
 from cvm.csvio.batch    import CSVBatch
 from cvm.csvio.document import RegularDocumentHeadReader, RegularDocumentBodyReader, UnexpectedBatch
-from cvm.csvio.row      import CSVRow
+from cvm.utils          import open_zip_member_on_stack
 from cvm.datatypes      import (
-    ControllingInterest, Country, SecurityType,
+    ControllingInterest, SecurityType,
     MarketType, MarketSegment, PreferredShareType,
     InvestorRelationsOfficerType, IssuerStatus,
     RegistrationCategory, RegistrationStatus,
@@ -22,299 +24,328 @@ __all__ = [
     'FCAFile'
 ]
 
-class _MemberNameList:
-    head_filename: str
-    auditor_filename: str
-    dissemination_channel_filename: str
-    shareholder_department_filename: str
-    investor_relations_department_filename: str
-    address_filename: str
-    bookkeeper_filename: str
-    general_filename: str
-    foreign_country_filename: str
-    securities_filename: str
+class FCAMemberNameList(MemberNameList):
+    head: str
+    auditor: str
+    dissemination_channel: str
+    shareholder_department: str
+    investor_relations_department: str
+    address: str
+    bookkeeper: str
+    general: str
+    foreign_country: str
+    securities: str
 
-    def __init__(self, namelist: typing.Iterable[str]):
-        self.head_filename                          = ''
-        self.auditor_filename                       = ''
-        self.dissemination_channel_filename         = ''
-        self.shareholder_department_filename        = ''
-        self.investor_relations_department_filename = ''
-        self.address_filename                       = ''
-        self.bookkeeper_filename                    = ''
-        self.general_filename                       = ''
-        self.foreign_country_filename               = ''
-        self.securities_filename                    = ''
+    @classmethod
+    def attribute_mapping(cls) -> typing.Dict[str, str]:
+        return {
+            '':                             'head',
+            '_auditor':                     'auditor',
+            '_canal_divulgacao':            'dissemination_channel',
+            '_departamento_acionistas':     'shareholder_department',
+            '_dri':                         'investor_relations_department',
+            '_endereco':                    'address',
+            '_escriturador':                'bookkeeper',
+            '_geral':                       'general',
+            '_pais_estrangeiro_negociacao': 'foreign_country',
+            '_valor_mobiliario':            'securities',
+        }
 
-        suffix_length = len('_YYYY.csv')
-
-        for name in namelist:
-            try:
-                left_name = name[:-suffix_length]
-            except IndexError:
-                raise zipfile.BadZipFile(f"unexpected name for member file '{name}'")
-
-            if   left_name == 'fca_cia_aberta':                             self.head_filename                          = name
-            elif left_name == 'fca_cia_aberta_auditor':                     self.auditor_filename                       = name
-            elif left_name == 'fca_cia_aberta_canal_divulgacao':            self.dissemination_channel_filename         = name
-            elif left_name == 'fca_cia_aberta_departamento_acionistas':     self.shareholder_department_filename        = name
-            elif left_name == 'fca_cia_aberta_dri':                         self.investor_relations_department_filename = name
-            elif left_name == 'fca_cia_aberta_endereco':                    self.address_filename                       = name
-            elif left_name == 'fca_cia_aberta_escriturador':                self.bookkeeper_filename                    = name
-            elif left_name == 'fca_cia_aberta_geral':                       self.general_filename                       = name
-            elif left_name == 'fca_cia_aberta_pais_estrangeiro_negociacao': self.foreign_country_filename               = name
-            elif left_name == 'fca_cia_aberta_valor_mobiliario':            self.securities_filename                    = name
-            else:
-                raise zipfile.BadZipFile(f"unknown member file '{name}'")
+    __slots__ = (
+        'head',
+        'auditor',
+        'dissemination_channel',
+        'shareholder_department',
+        'investor_relations_department',
+        'address',
+        'bookkeeper',
+        'general',
+        'foreign_country',
+        'securities',
+    )
 
 class CommonReader(RegularDocumentBodyReader):
     @staticmethod
     @functools.lru_cache
-    def countries() -> typing.Dict[str, Country]:
+    def countries() -> typing.Dict[str, str]:
         return {
-            'Afeganistão': Country.AF,
-            'África do Sul': Country.ZA,
-            'Albânia': Country.AL,
-            'Alemanha': Country.DE,
-            'Algéria': Country.DZ,
-            'Andorra': Country.AD,
-            'Angola': Country.AO,
-            'Anguilla': Country.AI,
-            'Antártida': Country.AQ,
-            'Antígua e Barbuda': Country.AG,
-            'Antilhas Holandesas': Country.AN,
-            'Arábia Saudita': Country.SA,
-            'Argentina': Country.AR,
-            'Armênia': Country.AM,
-            'Aruba': Country.AW,
-            'Austrália': Country.AU,
-            'Áustria': Country.AT,
-            'Azerbaijão': Country.AZ,
-            'Bahamas': Country.BS,
-            'Bahrein': Country.BH,
-            'Bangladesh': Country.BD,
-            'Barbados': Country.BB,
-            'Belarus': Country.BY,
-            'Bélgica': Country.BE,
-            'Belize': Country.BZ,
-            'Benin': Country.BJ,
-            'Bermudas': Country.BM,
-            'Bolívia': Country.BO,
-            'Bósnia-Herzegóvina': Country.BA,
-            'Botsuana': Country.BW,
-            'Brasil': Country.BR,
-            'Brunei': Country.BN,
-            'Bulgária': Country.BG,
-            'Burkina Fasso': Country.BF,
-            'Burundi': Country.BI,
-            'Butão': Country.BT,
-            'Cabo Verde': Country.CV,
-            'Camarões': Country.CM,
-            'Camboja': Country.KH,
-            'Canadá': Country.CA,
-            'Cazaquistão': Country.KZ,
-            'Chade': Country.TD,
-            'Chile': Country.CL,
-            'China': Country.CN,
-            'Chipre': Country.CY,
-            'Singapura': Country.SG,
-            'Colômbia': Country.CO,
-            'Congo': Country.CG,
-            'Coréia do Norte': Country.KP,
-            'Coréia do Sul': Country.KR,
-            'Costa do Marfim': Country.CI,
-            'Costa Rica': Country.CR,
-            'Croácia (Hrvatska)': Country.HR,
-            'Cuba': Country.CU,
-            'Dinamarca': Country.DK,
-            'Djibuti': Country.DJ,
-            'Dominica': Country.DM,
-            'Egito': Country.EG,
-            'El Salvador': Country.SV,
-            'Emirados Árabes Unidos': Country.AE,
-            'Equador': Country.EC,
-            'Eritréia': Country.ER,
-            'Eslováquia': Country.SK,
-            'Eslovênia': Country.SI,
-            'Espanha': Country.ES,
-            'Estados Unidos': Country.US,
-            'Estônia': Country.EE,
-            'Etiópia': Country.ET,
-            'Federação Russa': Country.RU,
-            'Fiji': Country.FJ,
-            'Filipinas': Country.PH,
-            'Finlândia': Country.FI,
-            'França': Country.FR,
-            'França Metropolitana': Country.FX,
-            'Gabão': Country.GA,
-            'Gâmbia': Country.GM,
-            'Gana': Country.GH,
-            'Geórgia': Country.GE,
-            'Gibraltar': Country.GI,
-            'Grã-Bretanha (Reino Unido, UK)': Country.GB,
-            'Granada': Country.GD,
-            'Grécia': Country.GR,
-            'Groelândia': Country.GL,
-            'Guadalupe': Country.GP,
-            'Guam (Território dos Estados Unidos)': Country.GU,
-            'Guatemala': Country.GT,
-            'Guiana': Country.GY,
-            'Guiana Francesa': Country.GF,
-            'Guiné': Country.GN,
-            'Guiné Equatorial': Country.GQ,
-            'Guiné-Bissau': Country.GW,
-            'Haiti': Country.HT,
-            'Holanda': Country.NL,
-            'Honduras': Country.HN,
-            'Hong Kong': Country.HK,
-            'Hungria': Country.HU,
-            'Iêmen': Country.YE,
-            'Ilha Bouvet (Território da Noruega)': Country.BV,
-            'Ilha Natal': Country.CX,
-            'Ilha Pitcairn': Country.PN,
-            'Ilha Reunião': Country.RE,
-            'Ilhas Cayman': Country.KY,
-            'Ilhas Cocos': Country.CC,
-            'Ilhas Comores': Country.KM,
-            'Ilhas Cook': Country.CK,
-            'Ilhas Faeroes': Country.FO,
-            'Ilhas Falkland (Malvinas)': Country.FK,
-            'Ilhas Geórgia do Sul e Sandwich do Sul': Country.GS,
-            'Ilhas Heard e McDonald (Território da Austrália)': Country.HM,
-            'Ilhas Marianas do Norte': Country.MP,
-            'Ilhas Marshall': Country.MH,
-            'Ilhas Menores dos Estados Unidos': Country.UM,
-            'Ilhas Norfolk': Country.NF,
-            'Ilhas Seychelles': Country.SC,
-            'Ilhas Solomão': Country.SB,
-            'Ilhas Svalbard e Jan Mayen': Country.SJ,
-            'Ilhas Tokelau': Country.TK,
-            'Ilhas Turks e Caicos': Country.TC,
-            'Ilhas Virgens (Estados Unidos)': Country.VI,
-            'Ilhas Virgens (Britânicas)': Country.VG,
-            'Ilhas Wallis e Futuna': Country.WF,
-            'índia': Country.IN,
-            'Indonésia': Country.ID,
-            'Irã': Country.IR,
-            'Iraque': Country.IQ,
-            'Irlanda': Country.IE,
-            'Islândia': Country.IS,
-            'Israel': Country.IL,
-            'Itália': Country.IT,
-            'Iugoslávia': Country.YU,
-            'Jamaica': Country.JM,
-            'Japão': Country.JP,
-            'Jordânia': Country.JO,
-            'Kênia': Country.KE,
-            'Kiribati': Country.KI,
-            'Kuait': Country.KW,
-            'Laos': Country.LA,
-            'Látvia': Country.LV,
-            'Lesoto': Country.LS,
-            'Líbano': Country.LB,
-            'Libéria': Country.LR,
-            'Líbia': Country.LY,
-            'Liechtenstein': Country.LI,
-            'Lituânia': Country.LT,
-            'Luxemburgo': Country.LU,
-            'Macau': Country.MO,
-            'Macedônia': Country.MK,
-            'Madagascar': Country.MG,
-            'Malásia': Country.MY,
-            'Malaui': Country.MW,
-            'Maldivas': Country.MV,
-            'Mali': Country.ML,
-            'Malta': Country.MT,
-            'Marrocos': Country.MA,
-            'Martinica': Country.MQ,
-            'Maurício': Country.MU,
-            'Mauritânia': Country.MR,
-            'Mayotte': Country.YT,
-            'México': Country.MX,
-            'Micronésia': Country.FM,
-            'Moçambique': Country.MZ,
-            'Moldova': Country.MD,
-            'Mônaco': Country.MC,
-            'Mongólia': Country.MN,
-            'Montserrat': Country.MS,
-            'Myanma': Country.MM,
-            'Namíbia': Country.NA,
-            'Nauru': Country.NR,
-            'Nepal': Country.NP,
-            'Nicarágua': Country.NI,
-            'Níger': Country.NE,
-            'Nigéria': Country.NG,
-            'Niue': Country.NU,
-            'Noruega': Country.NO,
-            'Nova Caledônia': Country.NC,
-            'Nova Zelândia': Country.NZ,
-            'Omã': Country.OM,
-            'Palau': Country.PW,
-            'Panamá': Country.PA,
-            'Papua-Nova Guiné': Country.PG,
-            'Paquistão': Country.PK,
-            'Paraguai': Country.PY,
-            'Peru': Country.PE,
-            'Polinésia Francesa': Country.PF,
-            'Polônia': Country.PL,
-            'Porto Rico': Country.PR,
-            'Portugal': Country.PT,
-            'Qatar': Country.QA,
-            'Quirguistão': Country.KG,
-            'República Centro-Africana': Country.CF,
-            'República Dominicana': Country.DO,
-            'República Tcheca': Country.CZ,
-            'Romênia': Country.RO,
-            'Ruanda': Country.RW,
-            'Saara Ocidental': Country.EH,
-            'Saint Vincente e Granadinas': Country.VC,
-            'Samoa Ocidental': Country.AS,
-            'Samoa Ocidental': Country.WS,
-            'San Marino': Country.SM,
-            'Santa Helena': Country.SH,
-            'Santa Lúcia': Country.LC,
-            'São Cristóvão e Névis': Country.KN,
-            'São Tomé e Príncipe': Country.ST,
-            'Senegal': Country.SN,
-            'Serra Leoa': Country.SL,
-            'Síria': Country.SY,
-            'Somália': Country.SO,
-            'Sri Lanka': Country.LK,
-            'St. Pierre and Miquelon': Country.PM,
-            'Suazilândia': Country.SZ,
-            'Sudão': Country.SD,
-            'Suécia': Country.SE,
-            'Suíça': Country.CH,
-            'Suriname': Country.SR,
-            'Tadjiquistão': Country.TJ,
-            'Tailândia': Country.TH,
-            'Taiwan': Country.TW,
-            'Tanzânia': Country.TZ,
-            'Território Britânico do Oceano índico': Country.IO,
-            'Territórios do Sul da França': Country.TF,
-            'Timor Leste': Country.TP,
-            'Togo': Country.TG,
-            'Tonga': Country.TO,
-            'Trinidad and Tobago': Country.TT,
-            'Tunísia': Country.TN,
-            'Turcomenistão': Country.TM,
-            'Turquia': Country.TR,
-            'Tuvalu': Country.TV,
-            'Ucrânia': Country.UA,
-            'Uganda': Country.UG,
-            'Uruguai': Country.UY,
-            'Uzbequistão': Country.UZ,
-            'Vanuatu': Country.VU,
-            'Vaticano': Country.VA,
-            'Venezuela': Country.VE,
-            'Vietnã': Country.VN,
-            'Zaire': Country.ZR,
-            'Zâmbia': Country.ZM,
-            'Zimbábue': Country.ZW,
+            'Afeganistão': 'AF',
+            'África do Sul': 'ZA',
+            'Albânia': 'AL',
+            'Alemanha': 'DE',
+            'Algéria': 'DZ',
+            'Andorra': 'AD',
+            'Angola': 'AO',
+            'Anguilla': 'AI',
+            'Antártida': 'AQ',
+            'Antígua e Barbuda': 'AG',
+            'Antilhas Holandesas': 'AN',
+            'Arábia Saudita': 'SA',
+            'Argentina': 'AR',
+            'Armênia': 'AM',
+            'Aruba': 'AW',
+            'Austrália': 'AU',
+            'Áustria': 'AT',
+            'Azerbaijão': 'AZ',
+            'Bahamas': 'BS',
+            'Bahrein': 'BH',
+            'Bangladesh': 'BD',
+            'Barbados': 'BB',
+            'Belarus': 'BY',
+            'Bélgica': 'BE',
+            'Belize': 'BZ',
+            'Benin': 'BJ',
+            'Bermudas': 'BM',
+            'Bolívia': 'BO',
+            'Bósnia-Herzegóvina': 'BA',
+            'Botsuana': 'BW',
+            'Brasil': 'BR',
+            'Brunei': 'BN',
+            'Bulgária': 'BG',
+            'Burkina Fasso': 'BF',
+            'Burundi': 'BI',
+            'Butão': 'BT',
+            'Cabo Verde': 'CV',
+            'Camarões': 'CM',
+            'Camboja': 'KH',
+            'Canadá': 'CA',
+            'Cazaquistão': 'KZ',
+            'Chade': 'TD',
+            'Chile': 'CL',
+            'China': 'CN',
+            'Chipre': 'CY',
+            'Singapura': 'SG',
+            'Colômbia': 'CO',
+            'Congo': 'CG',
+            'Coréia do Norte': 'KP',
+            'Coréia do Sul': 'KR',
+            'Costa do Marfim': 'CI',
+            'Costa Rica': 'CR',
+            'Croácia (Hrvatska)': 'HR',
+            'Cuba': 'CU',
+            'Dinamarca': 'DK',
+            'Djibuti': 'DJ',
+            'Dominica': 'DM',
+            'Egito': 'EG',
+            'El Salvador': 'SV',
+            'Emirados Árabes Unidos': 'AE',
+            'Equador': 'EC',
+            'Eritréia': 'ER',
+            'Eslováquia': 'SK',
+            'Eslovênia': 'SI',
+            'Espanha': 'ES',
+            'Estados Unidos': 'US',
+            'Estônia': 'EE',
+            'Etiópia': 'ET',
+            'Federação Russa': 'RU',
+            'Fiji': 'FJ',
+            'Filipinas': 'PH',
+            'Finlândia': 'FI',
+            'França': 'FR',
+            'França Metropolitana': 'FX',
+            'Gabão': 'GA',
+            'Gâmbia': 'GM',
+            'Gana': 'GH',
+            'Geórgia': 'GE',
+            'Gibraltar': 'GI',
+            'Grã-Bretanha (Reino Unido, UK)': 'GB',
+            'Granada': 'GD',
+            'Grécia': 'GR',
+            'Groelândia': 'GL',
+            'Guadalupe': 'GP',
+            'Guam (Território dos Estados Unidos)': 'GU',
+            'Guatemala': 'GT',
+            'Guiana': 'GY',
+            'Guiana Francesa': 'GF',
+            'Guiné': 'GN',
+            'Guiné Equatorial': 'GQ',
+            'Guiné-Bissau': 'GW',
+            'Haiti': 'HT',
+            'Holanda': 'NL',
+            'Honduras': 'HN',
+            'Hong Kong': 'HK',
+            'Hungria': 'HU',
+            'Iêmen': 'YE',
+            'Ilha Bouvet (Território da Noruega)': 'BV',
+            'Ilha Natal': 'CX',
+            'Ilha Pitcairn': 'PN',
+            'Ilha Reunião': 'RE',
+            'Ilhas Cayman': 'KY',
+            'Ilhas Cocos': 'CC',
+            'Ilhas Comores': 'KM',
+            'Ilhas Cook': 'CK',
+            'Ilhas Faeroes': 'FO',
+            'Ilhas Falkland (Malvinas)': 'FK',
+            'Ilhas Geórgia do Sul e Sandwich do Sul': 'GS',
+            'Ilhas Heard e McDonald (Território da Austrália)': 'HM',
+            'Ilhas Marianas do Norte': 'MP',
+            'Ilhas Marshall': 'MH',
+            'Ilhas Menores dos Estados Unidos': 'UM',
+            'Ilhas Norfolk': 'NF',
+            'Ilhas Seychelles': 'SC',
+            'Ilhas Solomão': 'SB',
+            'Ilhas Svalbard e Jan Mayen': 'SJ',
+            'Ilhas Tokelau': 'TK',
+            'Ilhas Turks e Caicos': 'TC',
+            'Ilhas Virgens (Estados Unidos)': 'VI',
+            'Ilhas Virgens (Britânicas)': 'VG',
+            'Ilhas Wallis e Futuna': 'WF',
+            'índia': 'IN',
+            'Indonésia': 'ID',
+            'Irã': 'IR',
+            'Iraque': 'IQ',
+            'Irlanda': 'IE',
+            'Islândia': 'IS',
+            'Israel': 'IL',
+            'Itália': 'IT',
+            'Iugoslávia': 'YU',
+            'Jamaica': 'JM',
+            'Japão': 'JP',
+            'Jordânia': 'JO',
+            'Kênia': 'KE',
+            'Kiribati': 'KI',
+            'Kuait': 'KW',
+            'Laos': 'LA',
+            'Látvia': 'LV',
+            'Lesoto': 'LS',
+            'Líbano': 'LB',
+            'Libéria': 'LR',
+            'Líbia': 'LY',
+            'Liechtenstein': 'LI',
+            'Lituânia': 'LT',
+            'Luxemburgo': 'LU',
+            'Macau': 'MO',
+            'Macedônia': 'MK',
+            'Madagascar': 'MG',
+            'Malásia': 'MY',
+            'Malaui': 'MW',
+            'Maldivas': 'MV',
+            'Mali': 'ML',
+            'Malta': 'MT',
+            'Marrocos': 'MA',
+            'Martinica': 'MQ',
+            'Maurício': 'MU',
+            'Mauritânia': 'MR',
+            'Mayotte': 'YT',
+            'México': 'MX',
+            'Micronésia': 'FM',
+            'Moçambique': 'MZ',
+            'Moldova': 'MD',
+            'Mônaco': 'MC',
+            'Mongólia': 'MN',
+            'Montserrat': 'MS',
+            'Myanma': 'MM',
+            'Namíbia': 'NA',
+            'Nauru': 'NR',
+            'Nepal': 'NP',
+            'Nicarágua': 'NI',
+            'Níger': 'NE',
+            'Nigéria': 'NG',
+            'Niue': 'NU',
+            'Noruega': 'NO',
+            'Nova Caledônia': 'NC',
+            'Nova Zelândia': 'NZ',
+            'Omã': 'OM',
+            'Palau': 'PW',
+            'Panamá': 'PA',
+            'Papua-Nova Guiné': 'PG',
+            'Paquistão': 'PK',
+            'Paraguai': 'PY',
+            'Peru': 'PE',
+            'Polinésia Francesa': 'PF',
+            'Polônia': 'PL',
+            'Porto Rico': 'PR',
+            'Portugal': 'PT',
+            'Qatar': 'QA',
+            'Quirguistão': 'KG',
+            'República Centro-Africana': 'CF',
+            'República Dominicana': 'DO',
+            'República Tcheca': 'CZ',
+            'Romênia': 'RO',
+            'Ruanda': 'RW',
+            'Saara Ocidental': 'EH',
+            'Saint Vincente e Granadinas': 'VC',
+            'Samoa Ocidental': 'AS',
+            'Samoa Ocidental': 'WS',
+            'San Marino': 'SM',
+            'Santa Helena': 'SH',
+            'Santa Lúcia': 'LC',
+            'São Cristóvão e Névis': 'KN',
+            'São Tomé e Príncipe': 'ST',
+            'Senegal': 'SN',
+            'Serra Leoa': 'SL',
+            'Síria': 'SY',
+            'Somália': 'SO',
+            'Sri Lanka': 'LK',
+            'St. Pierre and Miquelon': 'PM',
+            'Suazilândia': 'SZ',
+            'Sudão': 'SD',
+            'Suécia': 'SE',
+            'Suíça': 'CH',
+            'Suriname': 'SR',
+            'Tadjiquistão': 'TJ',
+            'Tailândia': 'TH',
+            'Taiwan': 'TW',
+            'Tanzânia': 'TZ',
+            'Território Britânico do Oceano índico': 'IO',
+            'Territórios do Sul da França': 'TF',
+            'Timor Leste': 'TP',
+            'Togo': 'TG',
+            'Tonga': 'TO',
+            'Trinidad and Tobago': 'TT',
+            'Tunísia': 'TN',
+            'Turcomenistão': 'TM',
+            'Turquia': 'TR',
+            'Tuvalu': 'TV',
+            'Ucrânia': 'UA',
+            'Uganda': 'UG',
+            'Uruguai': 'UY',
+            'Uzbequistão': 'UZ',
+            'Vanuatu': 'VU',
+            'Vaticano': 'VA',
+            'Venezuela': 'VE',
+            'Vietnã': 'VN',
+            'Zaire': 'ZR',
+            'Zâmbia': 'ZM',
+            'Zimbábue': 'ZW',
+
+            #===========================================================
+            # Typos, mistakes, and alternatives (see issue #12)
+            #
+            # Below is what happens when you don't enforce valid country
+            # names at GUI level, but instead let user type out country
+            # names and accept them as is. Argh.
+            #===========================================================
+            
+            # Brazil
+            'Brasi': 'BR',
+            'BR': 'BR',
+            'São Paulo': 'BR',
+
+            # Spain
+            'Espanhã': 'ES',
+
+            # Great Britain (United Kingdom)
+            'Reino Unido': 'GB',
+            'Inglaterra': 'GB',
+
+            # United States
+            'Nova Iorque': 'US',
+            'EUA': 'US',
+            'Estados Unidos da América': 'US',
+
+            # Luxembourg
+            'Luxemburgo.': 'LU',
+
+            # Canada
+            'Canadá Toronto Stock Exchange Venture (TSX-V)': 'CA',
+
+            # Switzerland
+            'Suiça': 'CH',
         }
 
     @classmethod
-    def read_country(cls, row: CSVRow, fieldname: str) -> typing.Optional[datatypes.Country]:
+    def read_country(cls, row: CSVRow, fieldname: str) -> typing.Optional[str]:
         country_name = row[fieldname]
 
         if country_name in ('', 'N/A', 'Não aplicável'):
@@ -323,33 +354,6 @@ class CommonReader(RegularDocumentBodyReader):
         try:
             return cls.countries()[country_name]
         except KeyError:
-            #===========================================================
-            # Below is what happens when you don't enforce valid country
-            # names at GUI level, but instead let user type out country
-            # names and accept them as is. Argh.
-            #===========================================================
-
-            if country_name in ('Brasi', 'BR', 'São Paulo'):
-                return datatypes.Country.BR
-            
-            if country_name == 'Espanhã':
-                return datatypes.Country.ES
-            
-            if country_name in ('Reino Unido', 'Inglaterra'):
-                return datatypes.Country.GB
-
-            if country_name in ('Nova Iorque', 'EUA', 'Estados Unidos da América'):
-                return datatypes.Country.US
-
-            if country_name == 'Luxemburgo.':
-                return datatypes.Country.LU
-
-            if country_name == 'Canadá Toronto Stock Exchange Venture (TSX-V)':
-                return datatypes.Country.CA
-
-            if country_name == 'Suiça':
-                return datatypes.Country.CH
-
             print('[', cls.__name__, "] Unknown country name '", country_name, "' at field '", fieldname, "'", sep='')
             return None
 
@@ -1029,25 +1033,17 @@ class ShareholderDepartmentReader(CommonReader):
 
         return shareholder_dept
 
-def fca_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
-    namelist = _MemberNameList(iter(archive.namelist()))
-
+def _reader(archive: zipfile.ZipFile, namelist: FCAMemberNameList) -> typing.Generator[datatypes.FCA, None, None]:
     with contextlib.ExitStack() as stack:
-        def open_on_stack(filename: str):
-            member = archive.open(filename, mode='r')
-            stream = io.TextIOWrapper(member, encoding='iso-8859-1')
-            
-            return stack.enter_context(stream)
-
-        head_reader              = RegularDocumentHeadReader        (open_on_stack(namelist.head_filename))
-        address_reader           = AddressReader                    (open_on_stack(namelist.address_filename))
-        trading_admission_reader = TradingAdmissionReader           (open_on_stack(namelist.foreign_country_filename))
-        issuer_company_reader    = IssuerCompanyReader              (open_on_stack(namelist.general_filename))
-        security_reader          = SecurityReader                   (open_on_stack(namelist.securities_filename))
-        auditor_reader           = AuditorReader                    (open_on_stack(namelist.auditor_filename))
-        bookkeeping_agent_reader = BookkeepingAgentReader           (open_on_stack(namelist.bookkeeper_filename))
-        ird_reader               = InvestorRelationsDepartmentReader(open_on_stack(namelist.investor_relations_department_filename))
-        shareholder_dept_reader  = ShareholderDepartmentReader      (open_on_stack(namelist.shareholder_department_filename))
+        head_reader              = RegularDocumentHeadReader        (open_zip_member_on_stack(stack, archive, namelist.head))
+        address_reader           = AddressReader                    (open_zip_member_on_stack(stack, archive, namelist.address))
+        trading_admission_reader = TradingAdmissionReader           (open_zip_member_on_stack(stack, archive, namelist.foreign_country))
+        issuer_company_reader    = IssuerCompanyReader              (open_zip_member_on_stack(stack, archive, namelist.general))
+        security_reader          = SecurityReader                   (open_zip_member_on_stack(stack, archive, namelist.securities))
+        auditor_reader           = AuditorReader                    (open_zip_member_on_stack(stack, archive, namelist.auditor))
+        bookkeeping_agent_reader = BookkeepingAgentReader           (open_zip_member_on_stack(stack, archive, namelist.bookkeeper))
+        ird_reader               = InvestorRelationsDepartmentReader(open_zip_member_on_stack(stack, archive, namelist.investor_relations_department))
+        shareholder_dept_reader  = ShareholderDepartmentReader      (open_zip_member_on_stack(stack, archive, namelist.shareholder_department))
 
         while True:
             try:
@@ -1136,6 +1132,11 @@ def fca_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None
                 investor_relations_department = ird,
                 shareholder_department        = shareholder_dept
             )
+
+def fca_reader(archive: zipfile.ZipFile) -> typing.Generator[datatypes.FCA, None, None]:
+    namelist = FCAMemberNameList(iter(archive.namelist()))
+
+    return _reader(archive, namelist)
 
 class FCAFile(zipfile.ZipFile):
     """Class for reading `FCA` objects from an FCA file."""

@@ -41,10 +41,19 @@ class MarketSegment(IntEnum):
     BOVESPA_PLUS_L2         = auto()
 
 class PreferredShareType(IntEnum):
-    PNA = auto()
-    PNB = auto()
-    PNC = auto()
-    PNU = auto()
+    PNA  = auto()
+    PNB  = auto()
+    PNC  = auto()
+    PNCR = auto()
+    PND  = auto()
+    PNDR = auto()
+    PNE  = auto()
+    PNF  = auto()
+    PNN  = auto()
+    PNOR = auto()
+    PNR  = auto()
+    PNU  = auto()
+    PNZR = auto()
 
 @dataclasses.dataclass(init=True)
 class Security:
